@@ -7,21 +7,33 @@
  * before they run on your system.
  *
  * Commands:
- *   /clawguard-scan [skill]       Full security audit
- *   /clawguard-status             Last scan summary
- *   /clawguard-report [skill]     Full findings breakdown
- *   /clawguard-history            Last 10 scans
- *   /clawguard-block [skill]      Add to blocklist
- *   /clawguard-whitelist [skill]  Add to whitelist
- *   /clawguard-digest             24h security summary
- *   /clawguard-dashboard          Open dashboard in browser
+ *   /clawguard-scan [skill]            Full security audit
+ *   /clawguard-status                  Last scan summary
+ *   /clawguard-report [skill]          Full findings breakdown
+ *   /clawguard-history                 Last 10 scans
+ *   /clawguard-block [skill]           Add to blocklist
+ *   /clawguard-unblock [skill]         Remove from blocklist
+ *   /clawguard-whitelist [skill]       Mark as trusted
+ *   /clawguard-unwhitelist [skill]     Un-trust a whitelisted skill
+ *   /clawguard-digest                  24h security summary
+ *   /clawguard-dashboard               Open dashboard in browser
+ *
+ *   AutoFix family:
+ *   /clawguard-preview [skill]         Alias of /clawguard-autofix — dry-run preview
+ *   /clawguard-autofix [skill]         Dry-run preview of Tier-1 fixes
+ *   /clawguard-autofix-apply [skill]   Actually apply all Tier-1 fixes
+ *   /clawguard-fix-all [skill]         Same as autofix-apply (friendly alias)
+ *   /clawguard-fix-cves [skill]        Apply only CVE bumps (safest subset)
+ *   /clawguard-fix-secrets [skill]     Apply only gitignore-secret-file (zero-risk hygiene)
+ *   /clawguard-fix-all-skills          Fix every installed skill (dry-run by default)
+ *   /clawguard-rescan [skill]          Re-scan and show change vs. previous scan
  */
 
 import chalk from "chalk";
 
 import db              from "./lib/db.js";
 import { scanAndSave } from "./lib/scan.js";
-import { runAutofix }  from "./lib/autofix/index.js";
+import { runAutofix, runAutofixAll } from "./lib/autofix/index.js";
 import { startDashboard } from "./dashboard/server.js";
 
 function getRiskColor(score) {
@@ -72,6 +84,75 @@ function formatAutofixReport(r) {
 
   if (r.dryRun && r.counts.tier1Total > 0) {
     msg += `_Run \`/clawguard-autofix-apply ${r.skillName}\` to actually apply Tier 1 fixes._\n`;
+  }
+  return msg;
+}
+
+function formatAutofixAllReport(r, apply) {
+  if (r.error) return `❌ Fix-All-Skills error: ${r.error}`;
+  const mode = apply ? "✍️ APPLIED" : "🔍 DRY-RUN (no files modified)";
+  let msg = `## 🛠️ ClawGuard Fix-All-Skills\n`;
+  msg += `**Mode:** ${mode}\n`;
+  msg += `**Skills scanned:** ${r.skills.length}\n`;
+  msg += `**Tier 1 total:** ${r.totals.tier1Applied}/${r.totals.tier1Total} applied\n`;
+  msg += `**Tier 2 flagged (pending sign-off):** ${r.totals.tier2Total}\n`;
+  msg += `**Tier 3 flagged (manual review):** ${r.totals.tier3Total}\n`;
+  if (r.totals.errors) msg += `**Errors:** ${r.totals.errors}\n`;
+  msg += "\n| Skill | Tier1 | Tier2 | Tier3 | Notes |\n|---|---|---|---|---|\n";
+  for (const s of r.skills) {
+    if (s.error) {
+      msg += `| ${s.skillName || "?"} | — | — | — | ⚠️ ${s.error} |\n`;
+      continue;
+    }
+    msg += `| ${s.skillName} | ${s.counts.tier1Applied}/${s.counts.tier1Total} | ${s.counts.tier2Total} | ${s.counts.tier3Total} |  |\n`;
+  }
+  if (!apply && r.totals.tier1Total > 0) {
+    msg += `\n_Run \`/clawguard-fix-all-skills apply=true\` to actually apply the Tier-1 fixes._\n`;
+  }
+  msg += `\n_Full details in dashboard at http://localhost:3334_`;
+  return msg;
+}
+
+function formatRescanDelta(skillName, prev, current) {
+  if (current.skipped) {
+    return `⏭️ Rescan skipped: ${skillName} is ${current.skipped}.`;
+  }
+  const prevScore = prev?.risk_score ?? null;
+  const currScore = current.score;
+  const delta = prevScore === null ? null : currScore - prevScore;
+
+  let msg = `## 🔄 ClawGuard Rescan — ${skillName}\n`;
+  msg += `**Current:** ${current.level} (${currScore}/100)\n`;
+  if (prevScore === null) {
+    msg += `_No previous scan to compare against._`;
+    return msg;
+  }
+  msg += `**Previous:** ${prev.risk_level} (${prevScore}/100)\n`;
+  if (delta === 0) {
+    msg += `**Change:** no change.\n`;
+  } else if (delta < 0) {
+    msg += `**Change:** ✅ improved by ${-delta} points.\n`;
+  } else {
+    msg += `**Change:** ⚠️ worse by ${delta} points.\n`;
+  }
+
+  const prevFindings = JSON.parse(prev.findings || "[]");
+  const key = (f) => `${f.message}│${f.detail || ""}`;
+  const prevKeys = new Set(prevFindings.map(key));
+  const currKeys = new Set(current.findings.map(key));
+
+  const resolved = prevFindings.filter(f => !currKeys.has(key(f)));
+  const newOnes  = current.findings.filter(f => !prevKeys.has(key(f)));
+
+  if (resolved.length) {
+    msg += `\n### ✅ Resolved since last scan\n`;
+    resolved.slice(0, 10).forEach(f => { msg += `- ${f.message}${f.detail ? ` (${f.detail})` : ""}\n`; });
+    if (resolved.length > 10) msg += `_…and ${resolved.length - 10} more._\n`;
+  }
+  if (newOnes.length) {
+    msg += `\n### 🚨 New findings\n`;
+    newOnes.slice(0, 10).forEach(f => { msg += `- ${f.message}${f.detail ? ` (${f.detail})` : ""}\n`; });
+    if (newOnes.length > 10) msg += `_…and ${newOnes.length - 10} more._\n`;
   }
   return msg;
 }
@@ -341,6 +422,131 @@ export default {
         } catch (err) {
           reply(`❌ AutoFix failed: ${err.message}`);
         }
+      },
+    });
+
+    // Friendly alias: /clawguard-preview → dry-run preview (same as autofix)
+    plugin.registerCommand({
+      name: "clawguard-preview",
+      description: "Preview what ClawGuard would fix on a skill (dry-run, no writes)",
+      args: [{ name: "skill", required: true }],
+      handler: async ({ args, reply }) => {
+        reply(`🔍 **ClawGuard Preview** for **${args.skill}**...`);
+        try {
+          const r = await runAutofix(args.skill, { dryRun: true });
+          reply(formatAutofixReport(r));
+        } catch (err) {
+          reply(`❌ Preview failed: ${err.message}`);
+        }
+      },
+    });
+
+    // Friendly alias: /clawguard-fix-all — apply every Tier-1 fix.
+    plugin.registerCommand({
+      name: "clawguard-fix-all",
+      description: "Apply every safe Tier-1 fix to a skill (CVEs, pins, gitignore)",
+      args: [{ name: "skill", required: true }],
+      handler: async ({ args, reply }) => {
+        reply(`🛠️ **ClawGuard Fix-All** modifying **${args.skill}**...`);
+        try {
+          const r = await runAutofix(args.skill, { dryRun: false });
+          reply(formatAutofixReport(r));
+        } catch (err) {
+          reply(`❌ Fix-all failed: ${err.message}`);
+        }
+      },
+    });
+
+    // Apply ONLY CVE bumps — the highest-signal, safest fix.
+    plugin.registerCommand({
+      name: "clawguard-fix-cves",
+      description: "Apply only CVE version bumps to a skill (other fixes skipped)",
+      args: [{ name: "skill", required: true }],
+      handler: async ({ args, reply }) => {
+        reply(`💉 **ClawGuard Fix-CVEs** bumping vulnerable deps in **${args.skill}**...`);
+        try {
+          const r = await runAutofix(args.skill, { dryRun: false, onlyReasons: ["cve-bump"] });
+          reply(formatAutofixReport(r));
+        } catch (err) {
+          reply(`❌ Fix-CVEs failed: ${err.message}`);
+        }
+      },
+    });
+
+    // Apply ONLY gitignore-secret-file — zero-risk hygiene fix.
+    plugin.registerCommand({
+      name: "clawguard-fix-secrets",
+      description: "Add any detected bundled secret files to .gitignore (never deletes)",
+      args: [{ name: "skill", required: true }],
+      handler: async ({ args, reply }) => {
+        reply(`🔒 **ClawGuard Fix-Secrets** hardening .gitignore for **${args.skill}**...`);
+        try {
+          const r = await runAutofix(args.skill, { dryRun: false, onlyReasons: ["gitignore-secret-file"] });
+          reply(formatAutofixReport(r));
+        } catch (err) {
+          reply(`❌ Fix-Secrets failed: ${err.message}`);
+        }
+      },
+    });
+
+    // Fix every installed skill at once. Dry-run default.
+    plugin.registerCommand({
+      name: "clawguard-fix-all-skills",
+      description: "Run AutoFix against every installed skill (dry-run by default). Pass apply=true to actually write.",
+      args: [{ name: "apply", required: false }],
+      handler: async ({ args, reply }) => {
+        const apply = args.apply === "true" || args.apply === "1" || args.apply === "yes";
+        reply(`🛰️ **ClawGuard Fix-All-Skills** ${apply ? "applying fixes" : "(dry-run)"} across all installed skills...`);
+        try {
+          const r = await runAutofixAll({ dryRun: !apply });
+          reply(formatAutofixAllReport(r, apply));
+        } catch (err) {
+          reply(`❌ Fix-All-Skills failed: ${err.message}`);
+        }
+      },
+    });
+
+    // Re-scan and show delta vs. previous scan — "did the fix actually fix it?"
+    plugin.registerCommand({
+      name: "clawguard-rescan",
+      description: "Re-scan a skill and show how findings changed vs. previous scan",
+      args: [{ name: "skill", required: true }],
+      handler: async ({ args, reply }) => {
+        const prev = db
+          .prepare(`SELECT risk_score, risk_level, findings FROM scans WHERE skill_name = ? ORDER BY scanned_at DESC LIMIT 1`)
+          .get(args.skill);
+        reply(`🔄 **ClawGuard Rescan** of **${args.skill}**...`);
+        try {
+          const result = await scanAndSave(args.skill, { respectLists: false });
+          reply(formatRescanDelta(args.skill, prev, result));
+        } catch (err) {
+          reply(`❌ Rescan failed: ${err.message}`);
+        }
+      },
+    });
+
+    // Un-block and un-whitelist. These were referenced in error messages but didn't exist.
+    plugin.registerCommand({
+      name: "clawguard-unblock",
+      description: "Remove a skill from the blocklist",
+      args: [{ name: "skill", required: true }],
+      handler: ({ args, reply }) => {
+        const info = db.prepare(`DELETE FROM blocklist WHERE skill_name = ?`).run(args.skill);
+        reply(info.changes > 0
+          ? `✅ **${args.skill}** removed from blocklist.`
+          : `ℹ️ **${args.skill}** was not on the blocklist.`);
+      },
+    });
+
+    plugin.registerCommand({
+      name: "clawguard-unwhitelist",
+      description: "Remove a skill from the whitelist (it will be scanned again)",
+      args: [{ name: "skill", required: true }],
+      handler: ({ args, reply }) => {
+        const info = db.prepare(`DELETE FROM whitelist WHERE skill_name = ?`).run(args.skill);
+        reply(info.changes > 0
+          ? `✅ **${args.skill}** removed from whitelist. It will be scanned again next time.`
+          : `ℹ️ **${args.skill}** was not on the whitelist.`);
       },
     });
 
