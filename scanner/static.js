@@ -80,9 +80,16 @@ export class StaticScanner {
       }
 
       const lines = content.split("\n");
-      const allPatterns = [...SECRET_PATTERNS, ...DANGEROUS_PATTERNS, ...OBFUSCATION_PATTERNS];
+      // Tag each pattern with its source category. Doing this here (rather
+      // than via array-includes of object literals — which never matches due
+      // to reference equality) guarantees category correctness.
+      const allPatterns = [
+        ...SECRET_PATTERNS.map     (p => ({ ...p, category: "secrets" })),
+        ...DANGEROUS_PATTERNS.map  (p => ({ ...p, category: "dangerous-code" })),
+        ...OBFUSCATION_PATTERNS.map(p => ({ ...p, category: "obfuscation" })),
+      ];
 
-      for (const { pattern, message, severity } of allPatterns) {
+      for (const { pattern, message, severity, category } of allPatterns) {
         lines.forEach((line, index) => {
           // Skip comments
           const trimmed = line.trim();
@@ -95,11 +102,7 @@ export class StaticScanner {
               detail: `File: ${path.relative(skillPath, file)}`,
               line: index + 1,
               snippet: trimmed.substring(0, 100),
-              category: SECRET_PATTERNS.includes({ pattern, message, severity })
-                ? "secrets"
-                : DANGEROUS_PATTERNS.includes({ pattern, message, severity })
-                ? "dangerous-code"
-                : "obfuscation",
+              category,
             });
           }
         });

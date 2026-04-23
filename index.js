@@ -21,12 +21,59 @@ import chalk from "chalk";
 
 import db              from "./lib/db.js";
 import { scanAndSave } from "./lib/scan.js";
+import { runAutofix }  from "./lib/autofix/index.js";
 import { startDashboard } from "./dashboard/server.js";
 
 function getRiskColor(score) {
   if (score >= 70) return chalk.red;
   if (score >= 40) return chalk.yellow;
   return chalk.green;
+}
+
+// ─── AUTOFIX REPORT FORMATTER ──────────────────────────────────────────────────────────
+function formatAutofixReport(r) {
+  if (r.error) return `❌ AutoFix error for **${r.skillName}**: ${r.error}`;
+
+  const mode = r.dryRun ? "🔍 DRY-RUN (no files modified)" : "✍️ APPLIED";
+  let msg = `## 🛡️ ClawGuard AutoFix — ${r.skillName}\n`;
+  msg += `**Mode:** ${mode}\n`;
+  msg += `**Tier 1 (safe auto-fixes):** ${r.counts.tier1Applied}/${r.counts.tier1Total} applied\n`;
+  msg += `**Tier 2 (AI-assisted):** ${r.counts.tier2Total} pending sign-off — see CONTEXT/AUTOFIX_DESIGN.md\n`;
+  msg += `**Tier 3 (manual review):** ${r.counts.tier3Total} flagged\n\n`;
+
+  if (r.tier1.length) {
+    msg += `### ✅ Tier 1\n`;
+    for (const t of r.tier1) {
+      const icon = t.applied ? "✅" : "⏭️";
+      msg += `- ${icon} **${t.reason}** — ${t.finding.message}\n`;
+      if (t.changed?.length) msg += `   files: ${t.changed.join(", ")}\n`;
+      if (t.diff)            msg += "```diff\n" + t.diff + "\n```\n";
+      if (t.error)           msg += `   ⚠️ ${t.error}\n`;
+    }
+    msg += "\n";
+  }
+
+  if (r.tier2.length) {
+    msg += `### 🤖 Tier 2 (pending Javier sign-off)\n`;
+    for (const t of r.tier2) {
+      msg += `- ⏳ **${t.reason || "tier2-disabled"}** — ${t.finding.message}\n`;
+    }
+    msg += "_See CONTEXT/AUTOFIX_DESIGN.md for the 5 business decisions blocking Tier 2._\n\n";
+  }
+
+  if (r.tier3.length) {
+    msg += `### ⚠️ Tier 3 (manual review required)\n`;
+    for (const t of r.tier3) {
+      msg += `- 🚨 **${t.finding.category}** — ${t.finding.message}\n`;
+      if (t.recommendation) msg += `   👉 ${t.recommendation}\n`;
+    }
+    msg += "\n";
+  }
+
+  if (r.dryRun && r.counts.tier1Total > 0) {
+    msg += `_Run \`/clawguard-autofix-apply ${r.skillName}\` to actually apply Tier 1 fixes._\n`;
+  }
+  return msg;
 }
 
 // ─── FULL SCAN ────────────────────────────────────────────────────────────────
@@ -264,6 +311,36 @@ export default {
         const { open } = await import("open");
         await open("http://localhost:3334");
         reply("🛡️ Opening ClawGuard dashboard at http://localhost:3334");
+      },
+    });
+
+    plugin.registerCommand({
+      name: "clawguard-autofix",
+      description: "Preview safe Tier-1 fixes for a skill (dry-run, no disk writes)",
+      args: [{ name: "skill", required: true }],
+      handler: async ({ args, reply }) => {
+        reply(`🛡️ **ClawGuard AutoFix (dry-run)** scanning **${args.skill}**...`);
+        try {
+          const r = await runAutofix(args.skill, { dryRun: true });
+          reply(formatAutofixReport(r));
+        } catch (err) {
+          reply(`❌ AutoFix failed: ${err.message}`);
+        }
+      },
+    });
+
+    plugin.registerCommand({
+      name: "clawguard-autofix-apply",
+      description: "Actually apply safe Tier-1 fixes to a skill (writes to disk)",
+      args: [{ name: "skill", required: true }],
+      handler: async ({ args, reply }) => {
+        reply(`⚠️ **ClawGuard AutoFix (APPLY)** modifying **${args.skill}**...`);
+        try {
+          const r = await runAutofix(args.skill, { dryRun: false });
+          reply(formatAutofixReport(r));
+        } catch (err) {
+          reply(`❌ AutoFix failed: ${err.message}`);
+        }
       },
     });
 

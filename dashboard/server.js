@@ -236,6 +236,50 @@ app.get("/api/chart/timeline", (req, res) => {
 });
 
 // ─── SERVE DASHBOARD ──────────────────────────────────────────────────────────
+// GET /api/autofix/runs — recent autofix runs
+app.get("/api/autofix/runs", (req, res) => {
+  try {
+    const rows = getDB()
+      .prepare(
+        `SELECT id, scan_id, skill_name, dry_run, tier1_total, tier1_applied,
+                tier2_total, tier3_total, created_at
+         FROM autofix_runs
+         ORDER BY created_at DESC
+         LIMIT 50`
+      )
+      .all();
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/autofix/runs/:id — full report for a single run
+app.get("/api/autofix/runs/:id", (req, res) => {
+  try {
+    const row = getDB()
+      .prepare(`SELECT * FROM autofix_runs WHERE id = ?`)
+      .get(req.params.id);
+    if (!row) return res.status(404).json({ error: "Autofix run not found" });
+    row.report = JSON.parse(row.report);
+    res.json(row);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/autofix/:skill — trigger an autofix (dry-run unless ?apply=1)
+app.post("/api/autofix/:skill", async (req, res) => {
+  try {
+    const apply = req.query.apply === "1" || req.body?.apply === true;
+    const { runAutofix } = await import("../lib/autofix/index.js");
+    const report = await runAutofix(req.params.skill, { dryRun: !apply });
+    res.json(report);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
