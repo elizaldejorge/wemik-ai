@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/elizaldejorge/wemik.git"
+    "url": "git+https://github.com/elizaldejorge/wemik-ai-ai.git"
   },
   "keywords": [
     "ai",
@@ -27,9 +27,9 @@
   "author": "Jorge Elizalde",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/elizaldejorge/wemik/issues"
+    "url": "https://github.com/elizaldejorge/wemik-ai-ai/issues"
   },
-  "homepage": "https://github.com/elizaldejorge/wemik#readme",
+  "homepage": "https://github.com/elizaldejorge/wemik-ai#readme",
   "dependencies": {
     "better-sqlite3": "^12.11.1",
     "express": "^5.2.1",
