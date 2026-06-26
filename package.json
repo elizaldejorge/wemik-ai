@@ -1,32 +1,37 @@
 {
-  "name": "clawguard",
-  "version": "1.0.0",
-  "description": "🛡️ Security auditor for OpenClaw skills — scans for malware, secrets, CVEs, and suspicious behavior before they run on your system.",
-  "main": "index.js",
+  "name": "wemik",
+  "version": "1.3.0",
+  "description": "🛡️ Wemik — a secure AI chat app for regulated industries. Sensitive data is detected and redacted locally, real values stay in a local encrypted vault, and only redacted prompts ever reach the model — so banks, government, and healthcare can use AI safely.",
+  "main": "dashboard/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node scripts/check-secrets.js && node --check scripts/check-secrets.js && node --check lib/audit.js && node --check lib/auth.js && node --check lib/env.js && node --check lib/db.js && node --check lib/gateway/pii.js && node --check lib/gateway/policy.js && node --check lib/gateway/providers.js && node --check lib/gateway/samples.js && node --check lib/gateway/engine.js && node --check lib/chat/vaultCrypto.js && node --check lib/chat/models.js && node --check lib/chat/store.js && node --check lib/chat/settings.js && node --check lib/chat/engine.js && node --check dashboard/server.js && echo 'syntax ok'",
+    "start": "node dashboard/server.js",
+    "dashboard": "node dashboard/server.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/elizaldejorge/clawguard.git"
+    "url": "git+https://github.com/elizaldejorge/wemik.git"
   },
   "keywords": [
-    "openclaw",
-    "security",
-    "malware",
-    "scanner",
-    "plugin",
-    "clawguard"
+    "ai",
+    "secure-chat",
+    "privacy",
+    "pii-redaction",
+    "data-sovereignty",
+    "local-first",
+    "encrypted-vault",
+    "regulated-industries",
+    "llm",
+    "wemik"
   ],
-  "author": "elizaldejorge",
+  "author": "Jorge Elizalde",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/elizaldejorge/clawguard/issues"
+    "url": "https://github.com/elizaldejorge/wemik/issues"
   },
-  "homepage": "https://github.com/elizaldejorge/clawguard#readme",
+  "homepage": "https://github.com/elizaldejorge/wemik#readme",
   "dependencies": {
-    "better-sqlite3": "^12.9.0",
-    "chalk": "^5.6.2",
+    "better-sqlite3": "^12.11.1",
     "express": "^5.2.1",
     "open": "^11.0.0"
   },

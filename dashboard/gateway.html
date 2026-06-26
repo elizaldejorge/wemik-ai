@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Wemik — Sovereign AI Gateway</title>
+<style>
+  :root{
+    /* Official Wemik palette (legacy var names, brand values). */
+    --navy:#172522; --navy2:#203631; --maroon:#0f766e; --maroon2:#0c5f58;
+    --gold:#d5a62d; --goldD:#9a7b1f; --ink:#14211f; --slate:#657370;
+    --line:#d8e1df; --tint:#eef6f4; --tintb:#eef3f2; --cloud:#f7faf9;
+    --green:#047857; --red:#b42318; --amber:#b45309;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#fff;color:var(--ink);font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  a{color:var(--maroon)}
+  .top{background:var(--navy);color:#fff;padding:18px 26px;display:flex;align-items:center;justify-content:space-between}
+  .brand{font-weight:800;font-size:22px;letter-spacing:.5px}
+  .brand small{display:block;font-weight:400;font-size:12px;color:#9AA2B4;letter-spacing:2px;margin-top:2px}
+  .top a{color:#C9CEDA;text-decoration:none;font-size:13px}
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 26px 60px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  @media(max-width:920px){.grid{grid-template-columns:1fr}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;box-shadow:0 2px 10px rgba(0,0,0,.04);margin-bottom:18px}
+  h2{font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--maroon);margin:0 0 14px}
+  h3{font-size:14px;margin:0 0 8px;color:var(--ink)}
+  label{font-size:12px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;display:block;margin:0 0 6px}
+  select,textarea,button{font:inherit}
+  select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+  textarea{width:100%;min-height:120px;padding:12px;border:1px solid var(--line);border-radius:10px;resize:vertical}
+  .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}
+  .btn{background:var(--maroon);color:#fff;border:none;border-radius:9px;padding:11px 18px;font-weight:700;cursor:pointer}
+  .btn:hover{background:var(--maroon2)}
+  .btn.ghost{background:#fff;color:var(--maroon);border:1px solid var(--maroon)}
+  .btn.gold{background:var(--gold);color:var(--navy)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .chip{background:var(--tintb);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12px;cursor:pointer}
+  .chip:hover{background:#e4e9f2}
+  .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}
+  .b-allow{background:#E4F1EA;color:var(--green)}
+  .b-approval{background:#FBF1DA;color:var(--amber)}
+  .b-block{background:#F7E4E6;color:var(--red)}
+  .roleBadge{background:var(--navy2);color:var(--gold);padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.5px}
+  .stage{border-left:0;padding:0;margin:0 0 16px}
+  .stageHead{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .num{width:24px;height:24px;border-radius:50%;background:var(--maroon);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none}
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:680px){.twocol{grid-template-columns:1fr}}
+  .pane{background:var(--cloud);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:13.5px;white-space:pre-wrap;word-break:break-word;min-height:60px}
+  .pane.red{background:var(--navy);color:#E6E9F0}
+  .pane .ph{background:var(--gold);color:var(--navy);border-radius:4px;padding:0 4px;font-weight:700}
+  mark{background:#F7D9DE;color:var(--maroon2);border-radius:4px;padding:0 3px;font-weight:600}
+  .ent{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13px}
+  .ent:last-child{border-bottom:none}
+  .ent .t{font-weight:700}
+  .sens-restricted{color:var(--red)} .sens-confidential{color:var(--amber)} .sens-internal{color:var(--slate)}
+  .muted{color:var(--slate);font-size:12.5px}
+  .reason{background:var(--tint);border-radius:8px;padding:10px 12px;font-size:13.5px;margin-top:8px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--slate);text-transform:uppercase;font-size:11px;letter-spacing:.5px}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px}
+  .verifyBox{padding:12px 14px;border-radius:10px;font-weight:700;margin-top:10px}
+  .v-ok{background:#E4F1EA;color:var(--green)} .v-bad{background:#F7E4E6;color:var(--red)}
+  .hidden{display:none}
+  .note{font-size:12.5px;color:var(--slate);font-style:italic;margin-top:6px}
+  .err{background:#F7E4E6;color:var(--red);border-radius:8px;padding:10px 12px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="brand">WEMIK <small>SOVEREIGN AI GATEWAY</small></div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <span id="roleBadge" class="roleBadge">ROLE: OPERATOR</span>
+    <a href="/">← Back to console</a>
+  </div>
+</div>
+
+<div class="wrap">
+  <p class="muted" style="margin-top:4px">
+    Every prompt is redacted, policy-checked, role-gated, and logged before any model sees it — the model only ever receives redacted text, and the audit log keeps no raw values. Runs fully offline by default.
+  </p>
+
+  <div class="grid">
+    <!-- LEFT: compose -->
+    <div>
+      <div class="card">
+        <h2>1 · Submit a request</h2>
+        <div class="row">
+          <div>
+            <label>Acting as (RBAC)</label>
+            <select id="role">
+              <option value="operator">Operator — can submit</option>
+              <option value="admin">Admin — submit + approve</option>
+              <option value="auditor">Auditor — read only</option>
+              <option value="viewer">Viewer — read only</option>
+            </select>
+          </div>
+          <div>
+            <label>Destination model</label>
+            <select id="destination">
+              <option value="sovereign-local">Sovereign (local, no egress)</option>
+              <option value="external-cloud">External cloud (GPT / Claude)</option>
+            </select>
+          </div>
+        </div>
+        <label>Prompt (may contain sensitive data)</label>
+        <textarea id="prompt" placeholder="e.g. Customer Ahmed Al-Thani (QID 28412345678) wants to dispute a QAR 12,500 charge on card 4111 1111 1111 1111…"></textarea>
+        <div class="chips" id="samples"></div>
+        <div class="row" style="margin-top:14px">
+          <button class="btn" id="send">Send through Wemik →</button>
+          <button class="btn ghost" id="clear">Clear</button>
+        </div>
+        <div id="err" class="err hidden"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: regulator view -->
+    <div>
+      <div class="card">
+        <h2>Regulator view · tamper-evident audit</h2>
+        <p class="muted">Append-only, hash-chained record of every gateway request. No raw personal data is stored here.</p>
+        <button class="btn gold" id="verify">Verify integrity</button>
+        <div id="verifyBox"></div>
+        <div style="overflow:auto;margin-top:12px;max-height:340px">
+          <table id="auditTbl">
+            <thead><tr><th>#</th><th>Decision</th><th>Dest</th><th>Status</th><th>Hash</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="result" class="card hidden">
+    <h2>Pipeline result</h2>
+    <div id="stages"></div>
+  </div>
+</div>
+
+<script>
+const $ = (s)=>document.querySelector(s);
+let TOKEN = null, CURRENT_ROLE = "operator", LAST_MAP = {};
+
+function headers(json){ const h = json ? {"Content-Type":"application/json"} : {}; if(TOKEN) h["Authorization"]="Bearer "+TOKEN; return h; }
+function esc(s){ return String(s==null?"":s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+
+async function setRole(role){
+  CURRENT_ROLE = role;
+  $("#roleBadge").textContent = "ROLE: " + role.toUpperCase();
+  // Mint a real delegated session token for this role (server-enforced RBAC).
+  try{
+    const r = await fetch("/api/auth/sessions/delegate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({role,label:"gateway-demo",ttlHours:8})});
+    if(r.ok){ const d = await r.json(); TOKEN = d.token; }
+    else { TOKEN = null; } // open mode without admin? fall back to ambient
+  }catch{ TOKEN = null; }
+  loadAudit();
+}
+
+async function loadSamples(){
+  const r = await fetch("/api/gateway/samples"); const d = await r.json();
+  $("#samples").innerHTML = "";
+  (d.samples||[]).forEach(s=>{
+    const c = document.createElement("span"); c.className="chip";
+    c.textContent = s.sector+": "+s.title;
+    c.onclick = ()=>{ $("#prompt").value=s.text; $("#destination").value=s.target; };
+    $("#samples").appendChild(c);
+  });
+}
+
+function highlightOriginal(text, map){
+  let html = esc(text);
+  Object.values(map||{}).forEach(v=>{
+    const safe = esc(v.value).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+    html = html.replace(new RegExp(safe,"g"), '<mark title="'+esc(v.label)+'">'+esc(v.value)+'</mark>');
+  });
+  return html;
+}
+function highlightRedacted(text){
+  return esc(text).replace(/\[[A-Z]+_\d+\]/g, m=>'<span class="ph">'+m+'</span>');
+}
+function reident(text, map){
+  let out = esc(text);
+  Object.entries(map||{}).forEach(([ph,v])=>{ out = out.split(ph).join('<mark>'+esc(v.value)+'</mark>'); });
+  return out.replace(/\[[A-Z]+_\d+\]/g, m=>'<span class="ph">'+m+'</span>');
+}
+
+function decisionBadge(dec){
+  if(dec==="allow") return '<span class="badge b-allow">ALLOW</span>';
+  if(dec==="require-approval") return '<span class="badge b-approval">HUMAN APPROVAL REQUIRED</span>';
+  if(dec==="block") return '<span class="badge b-block">BLOCKED</span>';
+  return '<span class="badge">'+esc(dec)+'</span>';
+}
+
+function render(out){
+  LAST_MAP = out.map || {};
+  const req = out.request;
+  const map = out.map || {};
+  const ents = req.entities || [];
+  let h = "";
+
+  // Stage A — redaction
+  h += '<div class="stage"><div class="stageHead"><span class="num">1</span><h3>Detect &amp; redact — before anything leaves the perimeter</h3></div>';
+  h += '<div class="twocol">';
+  h += '<div><label>Original (your data)</label><div class="pane">'+highlightOriginal(req.promptClear||req.promptRedacted, map)+'</div></div>';
+  h += '<div><label>What the AI actually sees</label><div class="pane red">'+highlightRedacted(req.promptRedacted)+'</div></div>';
+  h += '</div>';
+  if(ents.length){
+    h += '<div style="margin-top:10px">';
+    ents.forEach(e=>{ h += '<div class="ent"><span class="t">'+esc(e.placeholder)+' · '+esc(e.label)+'</span><span class="sens-'+esc(e.sensitivity)+'">'+esc(e.sensitivity)+' · '+esc(e.masked)+'</span></div>'; });
+    h += '</div>';
+  } else { h += '<p class="muted">No sensitive entities detected.</p>'; }
+  h += '</div>';
+
+  // Stage B — policy
+  h += '<div class="stage"><div class="stageHead"><span class="num">2</span><h3>Destination policy decision</h3></div>';
+  h += '<div>'+decisionBadge(req.decision)+' &nbsp; <span class="muted">destination: '+esc(req.destination)+' · sensitivity: '+esc(req.sensitivity||"none")+'</span></div>';
+  h += '<div class="reason">'+esc(req.reason||"")+'</div></div>';
+
+  // Stage C — outcome
+  if(req.status==="blocked"){
+    h += '<div class="stage"><div class="stageHead"><span class="num">3</span><h3>Blocked — the model was never called</h3></div><p class="err">Request refused by policy. Nothing was sent to any model.</p></div>';
+  } else if(out.needsApproval){
+    h += '<div class="stage"><div class="stageHead"><span class="num">3</span><h3>Held for human approval</h3></div>';
+    h += '<p class="muted">This request is parked as <b>pending</b> (#'+req.id+'). An Admin must approve before the model is called.</p>';
+    h += '<div class="row" style="margin-top:8px"><button class="btn" id="approve" data-id="'+req.id+'">Approve &amp; run (Admin)</button> <button class="btn ghost" id="reject" data-id="'+req.id+'">Reject</button></div>';
+    h += '<div id="approveErr"></div></div>';
+  } else if(req.status==="completed"){
+    h += '<div class="stage"><div class="stageHead"><span class="num">3</span><h3>Model response — re-identified locally, inside the perimeter</h3></div>';
+    h += '<div class="pane">'+reident(req.outputRedacted||"", map)+'</div>';
+    h += '<div class="note">Model: '+esc(req.provider||"")+' · '+esc(req.model||"")+'. The model received only the redacted text above; re-identification happened on this machine.'+(out.note? ' '+esc(out.note):'')+'</div></div>';
+  }
+
+  // Stage D — audit
+  if(req.hash){
+    h += '<div class="stage"><div class="stageHead"><span class="num">4</span><h3>Audit record written (hash-chained)</h3></div>';
+    h += '<table><tr><th>Record</th><td>#'+req.id+'</td></tr>';
+    h += '<tr><th>Prev hash</th><td><code>'+esc((req.prevHash||"").slice(0,32))+'…</code></td></tr>';
+    h += '<tr><th>This hash</th><td><code>'+esc((req.hash||"").slice(0,32))+'…</code></td></tr></table></div>';
+  }
+
+  $("#stages").innerHTML = h;
+  $("#result").classList.remove("hidden");
+  if($("#approve")) $("#approve").onclick = approve;
+  if($("#reject")) $("#reject").onclick = reject;
+  loadAudit();
+}
+
+async function send(){
+  $("#err").classList.add("hidden");
+  const prompt = $("#prompt").value.trim();
+  if(!prompt){ return showErr("Enter a prompt first."); }
+  $("#send").disabled = true; $("#send").textContent = "Processing…";
+  try{
+    const r = await fetch("/api/gateway/query",{method:"POST",headers:headers(true),body:JSON.stringify({prompt,destination:$("#destination").value})});
+    if(r.status===403){ const d=await r.json(); showErr("RBAC denied: role “"+(d.role||CURRENT_ROLE)+"” cannot submit — requires "+(d.required||"operator")+". (This is the server enforcing roles, not the UI.)"); return; }
+    const d = await r.json();
+    if(!r.ok){ showErr(d.error||"Request failed"); return; }
+    render(d);
+  }catch(e){ showErr(e.message); }
+  finally{ $("#send").disabled=false; $("#send").textContent="Send through Wemik →"; }
+}
+
+async function approve(e){
+  const id = e.target.dataset.id;
+  e.target.disabled = true; e.target.textContent="Approving…";
+  const r = await fetch("/api/gateway/requests/"+id+"/approve",{method:"POST",headers:headers(true)});
+  const d = await r.json();
+  if(r.status===403){ $("#approveErr").innerHTML = '<p class="err">RBAC denied: only an Admin can approve. Switch the role to Admin and retry.</p>'; e.target.disabled=false; e.target.textContent="Approve & run (Admin)"; return; }
+  if(!r.ok){ $("#approveErr").innerHTML='<p class="err">'+esc(d.error||"Failed")+'</p>'; return; }
+  // Re-identify the approved output using the map we still hold in memory.
+  d.map = LAST_MAP; d.request.promptClear = null;
+  render(d);
+}
+async function reject(e){
+  const id = e.target.dataset.id;
+  const r = await fetch("/api/gateway/requests/"+id+"/reject",{method:"POST",headers:headers(true),body:JSON.stringify({notes:"Rejected in demo"})});
+  if(r.status===403){ $("#approveErr").innerHTML='<p class="err">RBAC denied: only an Admin can reject.</p>'; return; }
+  const d = await r.json(); d.map = LAST_MAP; render(d);
+}
+
+async function loadAudit(){
+  const tb = $("#auditTbl").querySelector("tbody");
+  const r = await fetch("/api/gateway/requests?limit=30",{headers:headers(false)});
+  if(r.status===403){ tb.innerHTML='<tr><td colspan="5" class="muted">Role “'+esc(CURRENT_ROLE)+'” cannot read the audit trail (needs Auditor+).</td></tr>'; return; }
+  const d = await r.json();
+  tb.innerHTML = (d.requests||[]).map(x=>(
+    '<tr><td>'+x.id+'</td><td>'+decisionBadge(x.decision)+'</td><td>'+esc(x.destination)+'</td><td>'+esc(x.status)+'</td><td><code>'+esc((x.hash||"—").slice(0,12))+(x.hash?"…":"")+'</code></td></tr>'
+  )).join("") || '<tr><td colspan="5" class="muted">No requests yet.</td></tr>';
+}
+
+async function verify(){
+  const box = $("#verifyBox");
+  const r = await fetch("/api/gateway/verify",{headers:headers(false)});
+  if(r.status===403){ box.innerHTML='<div class="verifyBox v-bad">Role “'+esc(CURRENT_ROLE)+'” cannot verify (needs Auditor+).</div>'; return; }
+  const d = await r.json();
+  box.innerHTML = '<div class="verifyBox '+(d.ok?"v-ok":"v-bad")+'">'+(d.ok?"✓ ":"✗ ")+esc(d.message)+'</div>';
+}
+
+function showErr(m){ const e=$("#err"); e.textContent=m; e.classList.remove("hidden"); }
+
+$("#send").onclick = send;
+$("#clear").onclick = ()=>{ $("#prompt").value=""; $("#result").classList.add("hidden"); $("#err").classList.add("hidden"); };
+$("#verify").onclick = verify;
+$("#role").onchange = (e)=>setRole(e.target.value);
+
+loadSamples();
+setRole("operator");
+</script>
+</body>
+</html>

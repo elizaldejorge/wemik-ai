@@ -144,7 +144,7 @@ context/
 CONTEXT/
 
 # Private/internal artifacts — do not publish
-ClawGuard_Hardened_Setup.pptx
+Wemik_Hardened_Setup.pptx
 *.pptx
 
 # SQLite runtime database — never commit
@@ -156,3 +156,10 @@ db/
 # macOS
 .DS_Store
 **/.DS_Store
+
+# iCloud / Finder duplicate copies ("foo 2.json", "bar 3.db", etc.)
+* [0-9].json
+* [0-9].db
+* [0-9].sqlite
+* copy.*
+* copy [0-9].*
