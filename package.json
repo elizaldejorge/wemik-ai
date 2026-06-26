@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/elizaldejorge/wemik-ai-ai.git"
+    "url": "git+https://github.com/elizaldejorge/wemik-ai.git"
   },
   "keywords": [
     "ai",
@@ -27,7 +27,7 @@
   "author": "Jorge Elizalde",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/elizaldejorge/wemik-ai-ai/issues"
+    "url": "https://github.com/elizaldejorge/wemik-ai/issues"
   },
   "homepage": "https://github.com/elizaldejorge/wemik-ai#readme",
   "dependencies": {
