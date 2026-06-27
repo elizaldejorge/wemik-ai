@@ -37,6 +37,7 @@ import { SAMPLE_PROMPTS } from "../lib/gateway/samples.js";
 import chat from "../lib/chat/engine.js";
 import chatStore from "../lib/chat/store.js";
 import chatSettings from "../lib/chat/settings.js";
+import files from "../lib/chat/files.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -51,7 +52,7 @@ const HOST = "127.0.0.1"; // localhost-only, never public
 function getDB() { return db; }
 
 // ─── MIDDLEWARE ───────────────────────────────────────────────────────────────
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "25mb" })); // generous so base64 file uploads fit
 
 // Minimal cookie parser — avoids adding cookie-parser as a dep.
 app.use((req, _res, next) => {
@@ -234,6 +235,23 @@ app.post("/api/chat/message", async (req, res) => {
     const out = await chat.sendMessage({
       conversationId: req.body?.conversationId ? Number(req.body.conversationId) : null,
       text: String(req.body?.text || ""),
+      providerCfg: chatSettings.getProviderCfg(),
+      actor: actorLabel(req),
+    });
+    res.status(out.ok ? 200 : 400).json(out);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Secure file upload — bank portfolio demo: redact identity columns locally,
+// regroup the redacted rows via the model, restore real names on-device.
+app.post("/api/chat/upload", async (req, res) => {
+  try {
+    const { fileBase64, fileName, instruction } = req.body || {};
+    if (!fileBase64) return res.status(400).json({ error: "file required" });
+    const out = await files.processPortfolio({
+      buffer: Buffer.from(String(fileBase64), "base64"),
+      fileName: String(fileName || "upload.xlsx"),
+      instruction: String(instruction || ""),
       providerCfg: chatSettings.getProviderCfg(),
       actor: actorLabel(req),
     });

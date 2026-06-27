@@ -282,7 +282,7 @@ button:focus-visible, textarea:focus-visible, select:focus-visible {
   width: min(1040px, calc(100% - 56px));
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 40px;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
   align-items: flex-end;
   gap: 10px;
   border: 1px solid var(--line);
@@ -370,3 +370,79 @@ body.reduce-motion .mascot, body.reduce-motion .typing-dots i, body.reduce-motio
   .guard-columns { grid-template-columns: 1fr; }
   .composer-toolbar { overflow-x: auto; padding-bottom: 1px; }
 }
+
+/* ─── Attach button + file chip ─────────────────────────────────────────────── */
+.attach-button {
+  width: 40px; height: 40px; flex: none; border-radius: 10px;
+  border: 1px solid var(--line); background: #f3fafc; color: var(--accent-2);
+  display: grid; place-items: center; font-weight: 900;
+}
+.attach-button:hover { border-color: var(--line-strong); background: #e9f6fa; }
+.attach-button.has-file { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.attachment-preview { width: min(1040px, calc(100% - 56px)); margin: 0 auto 10px; }
+.attachment-chip {
+  display: inline-flex; align-items: center; gap: 10px;
+  border: 1px solid var(--line-strong); background: var(--panel-3);
+  border-radius: 12px; padding: 8px 12px; font-size: 13px; color: var(--ink);
+}
+.attachment-chip strong { font-weight: 800; }
+.attachment-chip small { color: var(--muted); }
+.attachment-chip .remove-attach {
+  border: 0; background: transparent; color: var(--muted); font-size: 16px; cursor: pointer; line-height: 1;
+}
+.attachment-chip .remove-attach:hover { color: var(--danger); }
+
+/* ─── Portfolio result card ─────────────────────────────────────────────────── */
+.portfolio { display: grid; gap: 12px; margin-top: 4px; }
+.portfolio-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.portfolio-head .pf-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 800;
+  background: #e7f7ef; color: var(--success); border: 1px solid rgba(20,135,79,.25);
+}
+.portfolio-head .pf-pill.ai { background: #eef4ff; color: #3a5bd0; border-color: rgba(58,91,208,.25); }
+.portfolio-headline { font-weight: 700; color: var(--ink); }
+
+.pf-protected { display: flex; gap: 8px; flex-wrap: wrap; }
+.pf-protected .pf-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); background: #f7fbfd; border-radius: 999px;
+  padding: 3px 9px; font-size: 12px; color: #31545f; font-weight: 700;
+}
+.pf-protected .pf-tag b { color: var(--accent-2); }
+
+.pf-tiers { display: grid; gap: 10px; }
+.pf-tier { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--panel-2); }
+.pf-tier.high { border-left: 4px solid var(--danger); }
+.pf-tier.medium { border-left: 4px solid var(--warning); }
+.pf-tier.low { border-left: 4px solid var(--success); }
+.pf-tier-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.pf-tier-head strong { font-size: 14px; }
+.pf-tier-head .pf-count { font-size: 12px; color: var(--muted); font-weight: 800; }
+.pf-tier .pf-rule { font-size: 12px; color: var(--muted); margin: 2px 0 6px; }
+.pf-tier .pf-summary { font-size: 13px; color: var(--ink); margin: 0 0 8px; }
+.pf-members { display: flex; gap: 6px; flex-wrap: wrap; }
+.pf-members span {
+  font-size: 12px; background: #fff; border: 1px solid var(--line);
+  border-radius: 8px; padding: 2px 8px; color: var(--ink);
+}
+
+.pf-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.pf-download {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent); color: #fff; border-radius: 10px;
+  padding: 9px 14px; font-weight: 800; font-size: 13px; border: 0; cursor: pointer;
+}
+.pf-download:hover { background: var(--accent-2); }
+.pf-seen { border: 1px solid var(--line); background: #f7fbfd; border-radius: 10px; padding: 9px 12px; font-weight: 700; font-size: 13px; color: #31545f; cursor: pointer; }
+.pf-seen-panel { margin-top: 8px; }
+.pf-seen-panel pre {
+  overflow-x: auto; background: #0f1f24; color: #cfeef4; border-radius: 10px;
+  padding: 12px; font-size: 12px; line-height: 1.5; margin: 0;
+}
+
+.file-line { display: inline-flex; align-items: center; gap: 8px; }
+.file-line strong { font-weight: 800; }
+.file-line small { color: rgba(255,255,255,.8); font-size: 11px; }
+.att-instruction { margin-top: 6px; }

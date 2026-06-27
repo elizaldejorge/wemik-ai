@@ -50,6 +50,7 @@ const state = {
   busy: false,
   persist: true,
   mode: "Security Copilot",
+  pendingFile: null, // { name, base64 } staged for the secure upload flow
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -104,10 +105,31 @@ function render() {
   renderSidebar();
   renderQuickPrompts();
   renderChat();
+  renderAttachment();
   updateMascotStatus();
-  sendButton.disabled = state.busy || input.value.trim().length === 0;
+  sendButton.disabled = state.busy || (input.value.trim().length === 0 && !state.pendingFile);
   sendButton.classList.toggle("loading", state.busy);
   saveStorage();
+}
+
+function renderAttachment() {
+  const host = $("#attachmentPreview");
+  const attachBtn = $("#attachButton");
+  if (!state.pendingFile) {
+    host.hidden = true; host.innerHTML = "";
+    attachBtn.classList.remove("has-file");
+    return;
+  }
+  attachBtn.classList.add("has-file");
+  host.hidden = false;
+  const kb = Math.max(1, Math.round((state.pendingFile.base64.length * 0.75) / 1024));
+  host.innerHTML = `
+    <div class="attachment-chip">
+      <span class="ui-icon icon-settings" aria-hidden="true"></span>
+      <span><strong>${escapeHtml(state.pendingFile.name)}</strong> <small>${kb} KB · guarded on device</small></span>
+      <button class="remove-attach" type="button" id="removeAttach" aria-label="Remove file">&times;</button>
+    </div>`;
+  $("#removeAttach").addEventListener("click", () => { state.pendingFile = null; render(); });
 }
 
 function renderSidebar() {
@@ -201,17 +223,25 @@ function renderChat() {
 function messageTemplate(message, index) {
   const isAssistant = message.role === "assistant";
   const severity = message.severity ? ` severity-${message.severity}` : "";
+  const bubbleInner = message.portfolio
+    ? portfolioMarkup(message.portfolio, index)
+    : message.sections
+      ? sectionsMarkup(message.sections)
+      : message.attachment
+        ? `${attachmentMarkup(message.attachment)}${message.text ? `<div class="att-instruction">${escapeHtml(message.text)}</div>` : ""}`
+        : escapeHtml(message.text);
+  const showCopyRetry = isAssistant && !message.thinking && !message.portfolio;
   return `
     <article class="message ${message.role}${severity}">
       ${isAssistant ? `<div class="message-avatar">${mascotMarkup(message.state || "idle")}</div>` : ""}
       <div class="message-body">
-        <div class="bubble">${message.sections ? sectionsMarkup(message.sections) : escapeHtml(message.text)}</div>
+        <div class="bubble">${bubbleInner}</div>
         <div class="message-meta">
           <span>${isAssistant ? state.mode : "You"}</span>
           ${guardBadge(message, index)}
           ${message.severity === "warning" ? "<span>Security warning</span>" : ""}
-          ${message.severity === "error" ? "<span>Test error path</span>" : ""}
-          ${isAssistant && !message.thinking ? `<button class="mini-action" type="button" data-copy-message="${index}">Copy</button><button class="mini-action" type="button" data-retry-message="${index}">Retry</button>` : ""}
+          ${message.severity === "error" ? "<span>Blocked before handoff</span>" : ""}
+          ${showCopyRetry ? `<button class="mini-action" type="button" data-copy-message="${index}">Copy</button><button class="mini-action" type="button" data-retry-message="${index}">Retry</button>` : ""}
         </div>
         ${guardPanel(message, index)}
       </div>
@@ -302,6 +332,32 @@ function attachMessageActions() {
       input.focus();
     });
   });
+
+  chatContent.querySelectorAll("[data-pf-seen]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const panel = button.closest(".portfolio")?.querySelector("[data-pf-seen-panel]");
+      if (panel) panel.hidden = !panel.hidden;
+    });
+  });
+
+  chatContent.querySelectorAll("[data-pf-download]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const conversation = selectedConversation();
+      const portfolio = conversation?.messages[Number(button.dataset.pfDownload)]?.portfolio;
+      if (!portfolio?.downloadXlsxBase64) return;
+      downloadBase64(portfolio.downloadXlsxBase64, portfolio.downloadFileName || "wemik-reorganised.xlsx");
+    });
+  });
+}
+
+function downloadBase64(base64, fileName) {
+  const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+  const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
 function mascotMarkup(stateName) {
@@ -355,6 +411,89 @@ async function sendMessage(text) {
     },
   });
   finishResponse(warning ? "warning" : "success", warning ? 1600 : 900);
+}
+
+async function sendPortfolio(instruction) {
+  const file = state.pendingFile;
+  if (!file) return;
+  const prompt = instruction || "Group these customers into credit-risk tiers and summarise each.";
+  const conversation = ensureConversation(file.name.replace(/\.[^.]+$/, ""));
+  conversation.messages.push({ role: "user", text: prompt, attachment: { name: file.name } });
+  conversation.updatedAt = Date.now();
+
+  state.pendingFile = null;
+  input.value = "";
+  autogrow();
+  state.busy = true;
+  setMascot("scanning");
+  render();
+
+  appendThinking("Reading the file and redacting sensitive columns on your device…");
+
+  try {
+    const res = await fetch("/api/chat/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName: file.name, instruction: prompt, fileBase64: file.base64 }),
+    });
+    const data = await res.json();
+    removeThinking();
+    if (!res.ok || !data.ok) {
+      conversation.messages.push({
+        role: "assistant", state: "error", severity: "error",
+        text: `Wemik could not process that file: ${escapeHtml(data.error || res.statusText)}. Nothing was sent off the device.`,
+      });
+      finishResponse("error", 1400);
+      return;
+    }
+    conversation.messages.push({ role: "assistant", state: "success", portfolio: data });
+    finishResponse("success", 1100);
+  } catch (err) {
+    removeThinking();
+    conversation.messages.push({
+      role: "assistant", state: "error", severity: "error",
+      text: `Wemik stopped before any handoff (${escapeHtml(err.message)}). Your file never left this machine.`,
+    });
+    finishResponse("error", 1400);
+  }
+}
+
+function attachmentMarkup(att) {
+  return `<div class="file-line"><span class="ui-icon icon-settings" aria-hidden="true"></span><strong>${escapeHtml(att.name)}</strong><small>guarded locally</small></div>`;
+}
+
+function portfolioMarkup(p, index) {
+  const tierClass = (t) => /high/i.test(t) ? "high" : /med/i.test(t) ? "medium" : "low";
+  const aiPill = p.aiUsed
+    ? `<span class="pf-pill ai">✦ ${escapeHtml(p.provider)} regrouped it</span>`
+    : `<span class="pf-pill">On-device grouping</span>`;
+  const tags = (p.protectedByType || []).map((t) =>
+    `<span class="pf-tag"><b>${t.count}</b> ${escapeHtml(t.label)}</span>`).join("");
+  const tiers = (p.groups || []).map((g) => `
+    <div class="pf-tier ${tierClass(g.tier)}">
+      <div class="pf-tier-head"><strong>${escapeHtml(g.tier)}</strong><span class="pf-count">${g.count} customer${g.count === 1 ? "" : "s"}</span></div>
+      ${g.rule ? `<div class="pf-rule">${escapeHtml(g.rule)}</div>` : ""}
+      ${g.summary ? `<p class="pf-summary">${escapeHtml(g.summary)}</p>` : ""}
+      <div class="pf-members">${(g.members || []).slice(0, 12).map((m) => `<span>${escapeHtml(m)}</span>`).join("")}${g.members.length > 12 ? `<span>+${g.members.length - 12} more</span>` : ""}</div>
+    </div>`).join("");
+
+  return `
+    <div class="portfolio">
+      <div class="portfolio-head">
+        <span class="pf-pill">🔒 ${p.protectedCount} values protected locally</span>
+        ${aiPill}
+      </div>
+      <div class="portfolio-headline">${escapeHtml(p.headline || "")}</div>
+      <div class="pf-protected">${tags}</div>
+      <div class="pf-tiers">${tiers}</div>
+      <div class="pf-actions">
+        <button class="pf-download" type="button" data-pf-download="${index}">⬇ Download reorganised Excel</button>
+        <button class="pf-seen" type="button" data-pf-seen>👁 What the model saw</button>
+      </div>
+      <div class="pf-seen-panel" data-pf-seen-panel hidden>
+        <pre>${escapeHtml(p.redactedPreview || "")}</pre>
+      </div>
+    </div>`;
 }
 
 function guardedUserMessage(text) {
@@ -540,9 +679,37 @@ function closeSidebar() {
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   const text = input.value.trim();
-  if (!text || state.busy) return;
+  if (state.busy) return;
+  if (state.pendingFile) { sendPortfolio(text); return; }
+  if (!text) return;
   sendMessage(text);
 });
+
+// ─── File attach (secure portfolio upload) ────────────────────────────────────
+const fileInput = $("#fileInput");
+$("#attachButton").addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", async () => {
+  const file = fileInput.files?.[0];
+  fileInput.value = "";
+  if (!file) return;
+  const base64 = await fileToBase64(file);
+  state.pendingFile = { name: file.name, base64 };
+  if (!input.value.trim()) {
+    input.value = "Group these customers into Low / Medium / High credit-risk tiers and summarise each tier.";
+    autogrow();
+  }
+  render();
+  input.focus();
+});
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 input.addEventListener("input", () => {
   autogrow();

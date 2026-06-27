@@ -4,7 +4,7 @@
   "description": "🛡️ Wemik — a secure AI chat app for regulated industries. Sensitive data is detected and redacted locally, real values stay in a local encrypted vault, and only redacted prompts ever reach the model — so banks, government, and healthcare can use AI safely.",
   "main": "dashboard/server.js",
   "scripts": {
-    "test": "node scripts/check-secrets.js && node --check scripts/check-secrets.js && node --check lib/audit.js && node --check lib/auth.js && node --check lib/env.js && node --check lib/db.js && node --check lib/gateway/pii.js && node --check lib/gateway/policy.js && node --check lib/gateway/providers.js && node --check lib/gateway/samples.js && node --check lib/gateway/engine.js && node --check lib/chat/vaultCrypto.js && node --check lib/chat/models.js && node --check lib/chat/store.js && node --check lib/chat/settings.js && node --check lib/chat/engine.js && node --check dashboard/server.js && echo 'syntax ok'",
+    "test": "node scripts/check-secrets.js && node --check scripts/check-secrets.js && node --check lib/audit.js && node --check lib/auth.js && node --check lib/env.js && node --check lib/db.js && node --check lib/gateway/pii.js && node --check lib/gateway/policy.js && node --check lib/gateway/providers.js && node --check lib/gateway/samples.js && node --check lib/gateway/engine.js && node --check lib/chat/vaultCrypto.js && node --check lib/chat/models.js && node --check lib/chat/store.js && node --check lib/chat/settings.js && node --check lib/chat/engine.js && node --check lib/chat/files.js && node --check dashboard/server.js && echo 'syntax ok'",
     "start": "node dashboard/server.js",
     "dashboard": "node dashboard/server.js"
   },
@@ -33,7 +33,9 @@
   "dependencies": {
     "better-sqlite3": "^12.11.1",
     "express": "^5.2.1",
-    "open": "^11.0.0"
+    "open": "^11.0.0",
+    "pdf-parse": "^1.1.1",
+    "xlsx": "^0.18.5"
   },
   "type": "module"
 }

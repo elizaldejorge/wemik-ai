@@ -50,13 +50,18 @@
 
       <section class="composer-region" aria-label="Message composer">
         <div class="quick-prompts" id="quickPrompts" aria-label="Quick prompts"></div>
+        <div class="attachment-preview" id="attachmentPreview" hidden></div>
         <form class="composer" id="composer">
           <div class="composer-toolbar" aria-label="Privacy controls">
             <span>Local Guard Active</span>
             <span>Placeholders before provider</span>
           </div>
+          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.pdf" hidden />
+          <button class="attach-button" id="attachButton" type="button" aria-label="Attach a file" title="Attach Excel, CSV or PDF">
+            <span class="ui-icon icon-plus" aria-hidden="true"></span>
+          </button>
           <label class="sr-only" for="messageInput">Message Wemik</label>
-          <textarea id="messageInput" rows="1" placeholder="Paste sensitive context. Wemik guards it locally before provider handoff..." autocomplete="off"></textarea>
+          <textarea id="messageInput" rows="1" placeholder="Attach a customer file, or paste sensitive context. Wemik guards it locally before provider handoff..." autocomplete="off"></textarea>
           <button class="send-button" id="sendButton" type="submit" aria-label="Send message">
             <span class="ui-icon icon-send send-icon" aria-hidden="true"></span>
             <span class="loading-spinner" aria-hidden="true"></span>
