@@ -640,3 +640,20 @@ body.reduce-motion .attachment-preview,
 body.reduce-motion .artifact-panel,
 body.reduce-motion .artifact-table tbody tr { animation: none !important; }
 body.reduce-motion .type-caret::after { display: none; }
+
+/* ─── Drafted bilingual letters (artifact panel) ────────────────────────────── */
+.letters { display: grid; gap: 12px; }
+.letter-card { border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); overflow: hidden; animation: staggerIn .3s ease both; }
+.letter-card:nth-child(2) { animation-delay: .05s; }
+.letter-card:nth-child(3) { animation-delay: .1s; }
+.letter-card:nth-child(n+4) { animation-delay: .15s; }
+.letter-head { display: flex; align-items: center; gap: 9px; padding: 10px 13px; border-bottom: 1px solid var(--line); background: #fff; }
+.letter-avatar { width: 26px; height: 26px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; font-weight: 800; font-size: 12px; }
+.letter-head strong { font-size: 13.5px; }
+.letter-pane { padding: 11px 14px; }
+.letter-pane + .letter-pane { border-top: 1px dashed var(--line); }
+.letter-lang { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--accent-2); margin-bottom: 5px; }
+.letter-pane p { margin: 0; font-size: 13px; line-height: 1.65; white-space: pre-wrap; color: var(--ink); }
+.letter-pane.ar { background: #fbfdfe; }
+.letter-pane.ar p { font-size: 14.5px; line-height: 1.85; }
+.letter-pane.ar .letter-lang { color: var(--gold, #b7791f); }

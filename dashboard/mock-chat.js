@@ -24,9 +24,9 @@ function fileThumb(name) {
 }
 
 const quickPrompts = [
-  "Upload a customer portfolio and group it by credit-risk tier.",
-  "Summarise a loan book and flag accounts 90+ days overdue.",
-  "Draft a collections message for an overdue customer — keep names on-device.",
+  "Draft bilingual (EN + AR) payment reminders for overdue customers.",
+  "Summarise an uploaded loan application and flag what's missing.",
+  "Group a customer portfolio by credit-risk tier.",
   "How does Wemik keep sensitive data on this machine?",
 ];
 
@@ -504,11 +504,26 @@ function attachmentMarkup(att) {
 }
 
 function portfolioMarkup(p, index) {
+  const tags = (p.protectedByType || []).map((t) =>
+    `<span class="pf-tag"><b>${t.count}</b> ${escapeHtml(t.label)}</span>`).join("");
+
+  if (p.mode === "draft") {
+    const aiNote = p.aiUsed ? `drafted by ${escapeHtml(p.provider)}` : "drafted on-device";
+    return `
+      <div class="portfolio">
+        <p class="pf-line"><span class="pf-shield">${icon("shield")}</span><span>${escapeHtml(p.headline || "Drafted messages.")} I protected <b>${p.protectedCount} sensitive values</b> on your device (${aiNote}); the model only ever saw placeholders, and the real names appear only in your copy.</span></p>
+        <div class="pf-protected">${tags}</div>
+        <button class="pf-open" type="button" data-pf-open="${index}">
+          ${fileThumb(p.downloadFileName || "messages.xlsx")}
+          <span class="pf-open-text"><strong>${escapeHtml(p.downloadFileName || "messages.xlsx")}</strong><small>${p.draftedCount} message${p.draftedCount === 1 ? "" : "s"} · click to preview &amp; download</small></span>
+          ${icon("chevron", "pf-open-arrow")}
+        </button>
+      </div>`;
+  }
+
   const aiNote = p.aiUsed ? `${escapeHtml(p.provider)} regrouped the redacted rows` : "grouped on-device";
   const counts = (p.groups || []).map((g) =>
     `<span class="pf-count-chip ${/high/i.test(g.tier) ? "high" : /med/i.test(g.tier) ? "medium" : "low"}">${g.count} ${escapeHtml(g.tier.replace(/ ?risk/i, ""))}</span>`).join("");
-  const tags = (p.protectedByType || []).map((t) =>
-    `<span class="pf-tag"><b>${t.count}</b> ${escapeHtml(t.label)}</span>`).join("");
   return `
     <div class="portfolio">
       <p class="pf-line"><span class="pf-shield">${icon("shield")}</span><span>${escapeHtml(p.headline || "Customers grouped by risk.")} I protected <b>${p.protectedCount} sensitive values</b> on your device (${aiNote}) and restored the real names here.</span></p>
@@ -537,24 +552,44 @@ function closeArtifact() {
 function renderArtifact() {
   const p = state.artifact;
   if (!p) { appShell.dataset.artifact = "closed"; return; }
-  $("#artifactName").textContent = p.downloadFileName || "Reorganised file";
-  $("#artifactMeta").textContent = `${p.rowCount} rows · ${p.protectedCount} values restored locally`;
+  const isDraft = p.mode === "draft";
+  $("#artifactName").textContent = p.downloadFileName || "Output file";
+  $("#artifactMeta").textContent = isDraft
+    ? `${p.draftedCount} message${p.draftedCount === 1 ? "" : "s"} · ${p.protectedCount} values restored locally`
+    : `${p.rowCount} rows · ${p.protectedCount} values restored locally`;
 
   const tab = state.artifactTab || "table";
-  $("#artifactTabs").querySelectorAll("[data-artifact-tab]").forEach((b) =>
-    b.classList.toggle("active", b.dataset.artifactTab === tab));
+  const tabs = $("#artifactTabs").querySelectorAll("[data-artifact-tab]");
+  tabs[0].textContent = isDraft ? "Drafted messages" : "Reorganised sheet";
+  tabs.forEach((b) => b.classList.toggle("active", b.dataset.artifactTab === tab));
 
   const body = $("#artifactBody");
   if (tab === "sent") {
     body.innerHTML = `
       <div class="artifact-sent">
-        <p class="artifact-note">This is exactly what left your device — identities replaced with placeholders, the financial figures kept so the model could still reason.</p>
-        <pre>${escapeHtml(p.redactedPreview || "")}</pre>
+        <p class="artifact-note">${isDraft
+          ? "This is exactly what left your device — the message the model drafted, using placeholders only. The real name was filled in locally afterwards."
+          : "This is exactly what left your device — identities replaced with placeholders, the financial figures kept so the model could still reason."}</p>
+        <pre dir="auto">${escapeHtml(p.redactedPreview || "")}</pre>
       </div>`;
   } else {
-    body.innerHTML = artifactTableMarkup(p.preview || { headers: [], rows: [] });
+    body.innerHTML = isDraft
+      ? artifactLettersMarkup(p.letters || [])
+      : artifactTableMarkup(p.preview || { headers: [], rows: [] });
   }
   $("#artifactFoot").innerHTML = `<span class="foot-dot"></span> Real values restored only on this machine — nothing identifying was sent to the model.`;
+}
+
+function artifactLettersMarkup(letters) {
+  return `<div class="letters">${letters.map((l) => {
+    const initial = (String(l.name || "?").trim()[0] || "?").toUpperCase();
+    return `
+      <div class="letter-card">
+        <div class="letter-head"><span class="letter-avatar">${escapeHtml(initial)}</span><strong>${escapeHtml(l.name)}</strong></div>
+        <div class="letter-pane"><span class="letter-lang">English</span><p>${escapeHtml(l.en || "")}</p></div>
+        <div class="letter-pane ar" dir="rtl" lang="ar"><span class="letter-lang">العربية</span><p>${escapeHtml(l.ar || "")}</p></div>
+      </div>`;
+  }).join("")}</div>`;
 }
 
 function artifactTableMarkup(preview) {
@@ -782,7 +817,7 @@ fileInput.addEventListener("change", async () => {
   const base64 = await fileToBase64(file);
   state.pendingFile = { name: file.name, base64 };
   if (!input.value.trim()) {
-    input.value = "Group these customers into Low / Medium / High credit-risk tiers and summarise each tier.";
+    input.value = "Draft a short bilingual (English + Arabic) payment reminder for each overdue customer.";
     autogrow();
   }
   render();
