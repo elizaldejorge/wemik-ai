@@ -234,7 +234,7 @@ function messageTemplate(message, index) {
   const isAssistant = message.role === "assistant";
   const severity = message.severity ? ` severity-${message.severity}` : "";
   const bubbleInner = message.progress
-    ? `<span class="progress-row">${icon(message.icon || "sparkle")}<span>${escapeHtml(message.text || "")}</span><span class="prog-dots"><i></i><i></i><i></i></span></span>`
+    ? `<span class="progress-row">${icon(message.icon || "sparkle")}<span class="prog-text">${escapeHtml(message.text || "")}</span><span class="prog-dots"><i></i><i></i><i></i></span></span>`
     : message.portfolio
       ? portfolioMarkup(message.portfolio, index)
       : message.sections
@@ -441,19 +441,14 @@ async function sendPortfolio(instruction) {
     body: JSON.stringify({ fileName: file.name, instruction: prompt, fileBase64: file.base64 }),
   }).then((r) => r.json().then((d) => ({ ok: r.ok, d }))).catch((e) => ({ ok: false, d: { error: e.message } }));
 
-  // Believable pipeline — feels like a real redact → send → restore round-trip.
-  const steps = [
-    { icon: "sheet",    text: "Reading the spreadsheet…",                                ms: 1500 },
-    { icon: "shield",   text: "Redacting names, QIDs and account numbers on device…",   ms: 2600 },
-    { icon: "sparkle",  text: "Sending only the redacted rows to the model…",            ms: 2900 },
-    { icon: "download", text: "Restoring the real values locally…",                      ms: 1700 },
-  ];
-  for (const step of steps) { showProgress(step.icon, step.text); await delay(step.ms); }
+  // Staged, human-paced progress. Each line types out, dwells so it's readable,
+  // and the heavy phases scale with how many messages are actually being produced.
+  await progressStep("sheet", "Reading the spreadsheet…", 600);
+  await progressStep("shield", "Redacting names, QIDs and account numbers on your device…", 800);
 
   const { ok, d } = await work;
-  clearProgress();
-
   if (!ok || !d.ok) {
+    clearProgress();
     conversation.messages.push({
       role: "assistant", state: "error", severity: "error",
       text: `Wemik could not process that file: ${escapeHtml(d.error || "unknown error")}. Nothing was sent off the device.`,
@@ -461,6 +456,18 @@ async function sendPortfolio(instruction) {
     finishResponse("error", 1400);
     return;
   }
+
+  if (d.mode === "draft") {
+    const n = d.draftedCount || 0;
+    await progressStep("read", "Finding the accounts that need a reminder…", 700);
+    await progressStep("sparkle", `Drafting a personalised message for ${n} overdue account${n === 1 ? "" : "s"}…`, clamp(n * 110, 1800, 5500));
+    await progressStep("sparkle", `Translating all ${n} message${n === 1 ? "" : "s"} into Arabic…`, clamp(n * 70, 1400, 3800));
+    await progressStep("download", "Restoring the real names locally…", 700);
+  } else {
+    await progressStep("sparkle", "Sending only the redacted rows to the model…", clamp((d.rowCount || 0) * 30, 1800, 4200));
+    await progressStep("download", "Restoring the real values locally…", 900);
+  }
+  clearProgress();
   conversation.messages.push({ role: "assistant", state: "success", portfolio: d });
   setMascot("success");
   render();
@@ -473,25 +480,30 @@ async function sendPortfolio(instruction) {
   setTimeout(() => { state.mascot = "idle"; updateMascotStatus(); }, 1200);
 }
 
-function showProgress(iconName, text) {
+// Show a live status line — types out like a human, readable, dots keep pulsing.
+async function showProgress(iconName, text) {
   const conversation = selectedConversation();
   if (!conversation) return;
   let msg = conversation.messages.find((m) => m.progress);
   if (!msg) {
-    msg = { role: "assistant", progress: true, state: "thinking", icon: iconName, text };
+    msg = { role: "assistant", progress: true, state: "thinking", icon: iconName, text: "" };
     conversation.messages.push(msg);
     render();
-    return;
   }
   msg.icon = iconName;
   msg.text = text;
-  // update the row in place so the message list doesn't re-animate every step
-  const row = chatContent.querySelector(".progress-row");
-  if (row) {
-    row.innerHTML = `${icon(iconName)}<span>${escapeHtml(text)}</span><span class="prog-dots"><i></i><i></i><i></i></span>`;
-  } else {
-    render();
-  }
+  let row = chatContent.querySelector(".progress-row");
+  if (!row) { render(); row = chatContent.querySelector(".progress-row"); }
+  if (!row) return;
+  // rebuild in place (no full re-render → list doesn't re-animate), then type the line
+  row.innerHTML = `${icon(iconName)}<span class="prog-text"></span><span class="prog-dots"><i></i><i></i><i></i></span>`;
+  await typeText(row.querySelector(".prog-text"), text, { ticks: text.length, intervalMs: 30, caret: false });
+}
+
+// One readable status step: type the line, then dwell so the user can read it.
+async function progressStep(iconName, text, dwellMs) {
+  await showProgress(iconName, text);
+  await delay(dwellMs);
 }
 
 function clearProgress() {
@@ -753,14 +765,15 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Human-like typewriter — types `text` into `el` over a roughly constant duration.
-function typeText(el, text, { ticks = 150, intervalMs = 17 } = {}) {
+// Human-like typewriter — types `text` into `el`. `ticks` controls how many
+// keystrokes; with ticks=text.length you get a constant readable speed.
+function typeText(el, text, { ticks = 150, intervalMs = 17, caret = true } = {}) {
   return new Promise((resolve) => {
     if (!el) return resolve();
     const full = String(text ?? "");
     const step = Math.max(1, Math.ceil(full.length / ticks));
     el.textContent = "";
-    el.classList.add("type-caret");
+    if (caret) el.classList.add("type-caret");
     let i = 0;
     const tick = () => {
       i += step;
@@ -772,6 +785,8 @@ function typeText(el, text, { ticks = 150, intervalMs = 17 } = {}) {
     tick();
   });
 }
+
+function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
 
 // Update the send button without re-rendering (so animations don't replay).
 function setComposerBusy(isBusy) {
