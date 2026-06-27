@@ -44,7 +44,7 @@ function iban() {
 function phone() { return "+974 " + pick(["3", "5", "6", "7"]) + int(100, 999) + " " + int(1000, 9999); }
 
 const rows = [];
-const N = 42;
+const N = 120;
 for (let i = 0; i < N; i++) {
   const name = `${pick(FIRST)} ${pick(LAST)}`;
   const salary = int(7000, 65000);
