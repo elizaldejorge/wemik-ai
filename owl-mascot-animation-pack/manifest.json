@@ -1,0 +1,84 @@
+{
+  "name": "Professional Pixel Owl Mascot Animation Pack",
+  "intendedUse": "AI chat UI assistant avatar states",
+  "format": "Transparent PNG sprite sheets, individual transparent PNG frames, and GIF previews on warm off-white.",
+  "frameSize": [
+    64,
+    64
+  ],
+  "style": "Minimal professional pixel-inspired owl, deep charcoal/slate with one cyan AI/security accent.",
+  "animations": [
+    {
+      "state": "idle",
+      "frameSize": [
+        64,
+        64
+      ],
+      "frames": 6,
+      "durationMsPerFrame": 180,
+      "sprite": "sprites/owl-idle-sprite.png",
+      "gifPreview": "previews/owl-idle.gif",
+      "frameFolder": "frames/idle"
+    },
+    {
+      "state": "waiting",
+      "frameSize": [
+        64,
+        64
+      ],
+      "frames": 6,
+      "durationMsPerFrame": 140,
+      "sprite": "sprites/owl-waiting-sprite.png",
+      "gifPreview": "previews/owl-waiting.gif",
+      "frameFolder": "frames/waiting"
+    },
+    {
+      "state": "thinking",
+      "frameSize": [
+        64,
+        64
+      ],
+      "frames": 6,
+      "durationMsPerFrame": 130,
+      "sprite": "sprites/owl-thinking-sprite.png",
+      "gifPreview": "previews/owl-thinking.gif",
+      "frameFolder": "frames/thinking"
+    },
+    {
+      "state": "success",
+      "frameSize": [
+        64,
+        64
+      ],
+      "frames": 6,
+      "durationMsPerFrame": 120,
+      "sprite": "sprites/owl-success-sprite.png",
+      "gifPreview": "previews/owl-success.gif",
+      "frameFolder": "frames/success"
+    },
+    {
+      "state": "warning",
+      "frameSize": [
+        64,
+        64
+      ],
+      "frames": 4,
+      "durationMsPerFrame": 180,
+      "sprite": "sprites/owl-warning-sprite.png",
+      "gifPreview": "previews/owl-warning.gif",
+      "frameFolder": "frames/warning"
+    },
+    {
+      "state": "error",
+      "frameSize": [
+        64,
+        64
+      ],
+      "frames": 6,
+      "durationMsPerFrame": 95,
+      "sprite": "sprites/owl-error-sprite.png",
+      "gifPreview": "previews/owl-error.gif",
+      "frameFolder": "frames/error"
+    }
+  ]
+}

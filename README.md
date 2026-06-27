@@ -1,6 +1,6 @@
 # Wemik
 
-![Wemik](Wemik_Hero.svg)
+![Wemik](Wemik-logo.png)
 
 > **The first AI chat that handles sensitive data safely.**
 > Your sensitive data is redacted on your machine, kept in a local encrypted vault, and never sent to the model — so regulated teams can finally use AI.

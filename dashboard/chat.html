@@ -1,305 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Wemik — Secure AI Chat</title>
-<link rel="icon" type="image/png" href="/wemik-logo.png" />
-<style>
-  /* Official Wemik palette: forest-green shell, teal primary, mint surfaces, gold/cyan accents.
-     (Variable names are legacy; the values are the brand colors.) */
-  :root{
-    --navy:#172522; --navy2:#203631; --navy3:#25423d;
-    --maroon:#0f766e; --maroon2:#0c5f58; --gold:#d5a62d; --goldL:#3aa76d;
-    --cyan:#22d3ee;
-    --bg:#f7faf9; --bg2:#edf3f2; --panel:#ffffff; --ink:#14211f; --slate:#657370; --faint:#8b9895;
-    --line:#d8e1df; --chip:#eef6f4; --chipBorder:#cde3de; --green:#047857;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0}
-  body{display:flex;background:linear-gradient(135deg,var(--bg),var(--bg2));color:var(--ink);font:15px/1.55 Inter,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-  /* ── Sidebar ── */
-  .side{width:270px;background:var(--navy);color:#cfd5e2;display:flex;flex-direction:column;flex:none}
-  .brand{padding:16px 16px 14px;display:flex;align-items:center;gap:11px}
-  .logoTile{width:36px;height:36px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 1px 4px rgba(0,0,0,.3)}
-  .logoTile img{width:25px;height:25px;display:block}
-  .brand .wm{font-weight:800;font-size:20px;color:#fff;letter-spacing:.3px;line-height:1}
-  .brand small{display:block;font-weight:600;font-size:9.5px;color:var(--faint);letter-spacing:2.5px;margin-top:4px}
-  .newbtn{margin:6px 14px 12px;padding:11px 14px;background:var(--maroon);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:8px;justify-content:center}
-  .newbtn:hover{background:var(--maroon2)}
-  .convs{flex:1;overflow:auto;padding:4px 10px}
-  .convLabel{font-size:11px;letter-spacing:1px;color:#6f7790;padding:8px 8px 4px;text-transform:uppercase}
-  .conv{padding:9px 10px;border-radius:9px;cursor:pointer;font-size:13.5px;color:#cfd5e2;display:flex;align-items:center;gap:8px;margin-bottom:2px}
-  .conv:hover{background:var(--navy2)}
-  .conv.active{background:var(--navy3);color:#fff}
-  .conv .t{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .conv .shield{font-size:11px;color:var(--goldL);flex:none}
-  .conv .del{opacity:0;color:#8b93a8;flex:none}
-  .conv:hover .del{opacity:1}
-  .sideFoot{border-top:1px solid var(--navy2);padding:10px 14px;display:flex;gap:14px;font-size:12px}
-  .sideFoot a,.sideFoot button{color:#9aa2b4;background:none;border:none;cursor:pointer;text-decoration:none;font:inherit;padding:0}
-  .sideFoot a:hover,.sideFoot button:hover{color:#fff}
-  /* ── Main ── */
-  .main{flex:1;display:flex;flex-direction:column;min-width:0}
-  .top{height:56px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 22px;background:var(--panel)}
-  .top .title{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .guard{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--green);background:#EAF4EE;border:1px solid #CDE6D8;padding:5px 11px;border-radius:999px;font-weight:600;flex:none}
-  .provPill{font-size:11.5px;color:var(--slate);margin-left:10px}
-  .thread{flex:1;overflow:auto;padding:26px 0}
-  .wrap{max-width:760px;margin:0 auto;padding:0 22px}
-  .msg{display:flex;margin-bottom:22px;gap:12px}
-  .msg.user{justify-content:flex-end}
-  .avatar{width:30px;height:30px;border-radius:7px;flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff}
-  .avatar.ai{background:var(--navy)}
-  .bubble{max-width:80%;padding:13px 16px;border-radius:14px;white-space:pre-wrap;word-wrap:break-word;font-size:14.5px}
-  .user .bubble{background:var(--maroon);color:#fff;border-bottom-right-radius:5px}
-  .ai .bubble{background:var(--panel);border:1px solid var(--line);border-bottom-left-radius:5px}
-  .meta{margin-top:7px;font-size:11.5px;color:var(--slate);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .user .meta{justify-content:flex-end}
-  .protchip{display:inline-flex;align-items:center;gap:6px;background:var(--chip);color:var(--maroon);border:1px solid var(--chipBorder);border-radius:999px;padding:3px 9px;font-weight:600;cursor:pointer}
-  .protchip:hover{background:#e3f1ed}
-  .ph{background:var(--gold);color:#3a2c06;border-radius:4px;padding:0 4px;font-weight:700;font-size:12.5px}
-  .empty{max-width:680px;margin:7vh auto 0;text-align:center;padding:0 20px}
-  .empty h1{font-size:30px;margin:0 0 8px}
-  .empty p{color:var(--slate);margin:0 auto 26px;max-width:520px}
-  .samples{display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:left}
-  @media(max-width:620px){.samples{grid-template-columns:1fr}}
-  .sample{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:13px 15px;cursor:pointer}
-  .sample:hover{border-color:var(--maroon);box-shadow:0 2px 10px rgba(0,0,0,.05)}
-  .sample b{display:block;font-size:13px;margin-bottom:3px}
-  .sample span{font-size:12.5px;color:var(--slate)}
-  /* ── Composer ── */
-  .composer{border-top:1px solid var(--line);background:var(--panel);padding:14px 0 18px}
-  .cwrap{max-width:760px;margin:0 auto;padding:0 22px}
-  .inbox{display:flex;gap:10px;align-items:flex-end;border:1px solid var(--line);border-radius:14px;padding:8px 8px 8px 14px;box-shadow:0 2px 12px rgba(0,0,0,.04)}
-  .inbox:focus-within{border-color:var(--maroon)}
-  textarea{flex:1;border:none;outline:none;resize:none;font:inherit;max-height:160px;background:transparent;padding:6px 0}
-  .sendbtn{width:38px;height:38px;border-radius:10px;border:none;background:var(--maroon);color:#fff;font-size:17px;cursor:pointer;flex:none}
-  .sendbtn:disabled{opacity:.45;cursor:not-allowed}
-  .foothint{text-align:center;font-size:11.5px;color:var(--slate);margin-top:9px}
-  /* ── Modal ── */
-  .modal{position:fixed;inset:0;background:rgba(20,26,46,.5);display:none;align-items:center;justify-content:center;z-index:50}
-  .modal.open{display:flex}
-  .sheet{background:#fff;border-radius:16px;width:460px;max-width:92vw;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
-  .sheet h3{margin:0 0 4px;font-size:18px}
-  .sheet p.sub{margin:0 0 18px;color:var(--slate);font-size:13px}
-  .field{margin-bottom:14px}
-  .field label{display:block;font-size:12px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
-  .field input,.field select{width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;font:inherit}
-  .keyrow{font-size:11.5px;color:var(--slate);margin-top:4px}
-  .ok{color:var(--green);font-weight:700}
-  .sheetbtns{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
-  .btn{padding:10px 16px;border-radius:9px;border:none;font-weight:700;cursor:pointer}
-  .btn.primary{background:var(--maroon);color:#fff}
-  .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
-  .typing{display:inline-block;color:var(--slate);font-size:14px}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wemik - Cybersecurity AI Chat</title>
+  <link rel="icon" type="image/png" href="/wemik-logo.png" />
+  <link rel="stylesheet" href="/mock-chat.css" />
 </head>
 <body>
-  <aside class="side">
-    <div class="brand"><span class="logoTile"><img src="/wemik-logo.png" alt="Wemik logo" /></span><span class="wm">Wemik<small>SECURE&nbsp;AI</small></span></div>
-    <button class="newbtn" id="newBtn">＋ New chat</button>
-    <div class="convs" id="convs"></div>
-    <div class="sideFoot">
-      <button id="settingsBtn">⚙ Model</button>
-      <a href="/gateway" target="_blank">How it works</a>
-      <a href="/console" target="_blank">Console</a>
-    </div>
-  </aside>
+  <div class="app-shell" data-sidebar="closed">
+    <div class="scrim" data-close-sidebar></div>
 
-  <main class="main">
-    <div class="top">
-      <div class="title" id="convTitle">New chat</div>
-      <div style="display:flex;align-items:center">
-        <span class="guard">🔒 Sovereign · sensitive data stays local</span>
-        <span class="provPill" id="provPill"></span>
+    <aside class="sidebar" aria-label="Conversation sidebar">
+      <div class="brand">
+        <span class="brand-mark"><img src="/wemik-logo.png" alt="" /></span>
+        <span>
+          <strong>Wemik</strong>
+          <small>CYBER AI</small>
+        </span>
       </div>
-    </div>
 
-    <div class="thread" id="thread"></div>
+      <button class="new-chat-button" id="newChatButton" type="button">
+        <span class="ui-icon icon-plus" aria-hidden="true"></span>
+        New Chat
+      </button>
 
-    <div class="composer">
-      <div class="cwrap">
-        <div class="inbox">
-          <textarea id="input" rows="1" placeholder="Message Wemik… sensitive data is redacted before it ever leaves your machine"></textarea>
-          <button class="sendbtn" id="send">↑</button>
+      <nav class="conversation-nav" id="conversationNav" aria-label="Past chats"></nav>
+
+      <div class="sidebar-footer">
+        <button class="icon-text-button" id="settingsButton" type="button">
+          <span class="ui-icon icon-settings" aria-hidden="true"></span>
+          Settings
+        </button>
+      </div>
+    </aside>
+
+    <main class="chat-main">
+      <header class="chat-header">
+        <button class="mobile-menu-button" id="menuButton" type="button" aria-label="Open conversations">
+          <span class="ui-icon icon-menu" aria-hidden="true"></span>
+        </button>
+        <div class="header-title">
+          <span id="conversationTitle">New chat</span>
+          <small>Local redaction preview · provider-safe prompt handoff</small>
         </div>
-        <div class="foothint">Wemik strips PII to placeholders locally, sends only the redacted prompt to the model, then restores your real values here. Nothing sensitive leaves this machine.</div>
-      </div>
-    </div>
-  </main>
+      </header>
 
-  <!-- Settings modal -->
-  <div class="modal" id="modal">
-    <div class="sheet">
-      <h3>Model settings</h3>
-      <p class="sub">Choose which model powers Wemik. Only redacted prompts are sent to it. Keys are stored locally, encrypted at rest.</p>
-      <div class="field">
-        <label>Provider</label>
-        <select id="provider">
-          <option value="sovereign">Sovereign (offline, local — no key needed)</option>
-          <option value="openai">OpenAI (ChatGPT)</option>
-          <option value="anthropic">Anthropic (Claude)</option>
-          <option value="ollama">Ollama (local Llama)</option>
-        </select>
+      <section class="chat-content" id="chatContent" aria-live="polite"></section>
+
+      <section class="composer-region" aria-label="Message composer">
+        <div class="quick-prompts" id="quickPrompts" aria-label="Quick prompts"></div>
+        <form class="composer" id="composer">
+          <div class="composer-toolbar" aria-label="Privacy controls">
+            <span>Local Guard Active</span>
+            <span>Placeholders before provider</span>
+          </div>
+          <label class="sr-only" for="messageInput">Message Wemik</label>
+          <textarea id="messageInput" rows="1" placeholder="Paste sensitive context. Wemik guards it locally before provider handoff..." autocomplete="off"></textarea>
+          <button class="send-button" id="sendButton" type="submit" aria-label="Send message">
+            <span class="ui-icon icon-send send-icon" aria-hidden="true"></span>
+            <span class="loading-spinner" aria-hidden="true"></span>
+          </button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <div>
+          <h2 id="settingsTitle">Settings</h2>
+          <p>Prototype preferences stored in this browser only.</p>
+        </div>
+        <button class="icon-button" id="closeSettingsButton" type="button" aria-label="Close settings">
+          <span class="ui-icon icon-close" aria-hidden="true"></span>
+        </button>
       </div>
-      <div class="field"><label>Model</label><input id="model" placeholder="e.g. gpt-5.3-codex / claude-sonnet-4-6" /></div>
-      <div class="field" id="openaiField"><label>OpenAI API key</label><input id="openaiKey" type="password" placeholder="sk-…" /><div class="keyrow" id="openaiStatus"></div></div>
-      <div class="field" id="anthropicField"><label>Anthropic API key</label><input id="anthropicKey" type="password" placeholder="sk-ant-…" /><div class="keyrow" id="anthropicStatus"></div></div>
-      <div class="sheetbtns">
-        <button class="btn ghost" id="closeModal">Cancel</button>
-        <button class="btn primary" id="saveProvider">Save</button>
+
+      <div class="settings-grid">
+        <label class="field">
+          <span>Assistant mode</span>
+          <select id="modeSelect">
+            <option>Security Copilot</option>
+            <option>Threat Analyst</option>
+            <option>Compliance Reviewer</option>
+          </select>
+        </label>
+        <label class="toggle-row">
+          <span>
+            <strong>Persist preview chats</strong>
+            <small>Uses localStorage for the frontend preview. No backend or database.</small>
+          </span>
+          <input id="persistToggle" type="checkbox" checked />
+        </label>
+        <label class="toggle-row">
+          <span>
+            <strong>Reduce assistant motion</strong>
+            <small>Overrides animation for this prototype.</small>
+          </span>
+          <input id="motionToggle" type="checkbox" />
+        </label>
       </div>
     </div>
   </div>
 
-<script>
-const $ = (s)=>document.querySelector(s);
-let CUR = null;          // current conversation id
-let CONVS = [];
-function esc(s){ return String(s==null?"":s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
-function phHighlight(t){ return esc(t).replace(/\[[A-Z]+_\d+\]/g, m=>'<span class="ph">'+m+'</span>'); }
-
-// ── Conversations ──
-async function loadConvs(){
-  const d = await (await fetch("/api/chat/conversations")).json();
-  CONVS = d.conversations||[];
-  const el = $("#convs");
-  el.innerHTML = '<div class="convLabel">Chats</div>' + (CONVS.length? CONVS.map(c=>(
-    '<div class="conv'+(c.id===CUR?' active':'')+'" data-id="'+c.id+'">'
-    + (c.secure?'<span class="shield" title="Protected data in this chat">🛡️</span>':'')
-    + '<span class="t">'+esc(c.title)+'</span>'
-    + '<span class="del" data-del="'+c.id+'" title="Delete">✕</span></div>'
-  )).join("") : '<div class="conv" style="opacity:.6">No chats yet</div>');
-  el.querySelectorAll(".conv[data-id]").forEach(n=>n.onclick=(e)=>{ if(e.target.dataset.del) return; openConv(Number(n.dataset.id)); });
-  el.querySelectorAll("[data-del]").forEach(n=>n.onclick=(e)=>{ e.stopPropagation(); delConv(Number(n.dataset.del)); });
-}
-async function openConv(id){
-  CUR = id;
-  const d = await (await fetch("/api/chat/conversations/"+id)).json();
-  $("#convTitle").textContent = d.conversation.title;
-  renderThread(d.messages.map(m=>({role:m.role, real:m.real, redacted:m.redacted, protectedCount:m.protectedCount, provider:m.provider, model:m.model})));
-  loadConvs();
-}
-function newChat(){ CUR=null; $("#convTitle").textContent="New chat"; renderEmpty(); $("#input").focus(); loadConvs(); }
-async function delConv(id){
-  await fetch("/api/chat/conversations/"+id,{method:"DELETE"});
-  if(CUR===id) newChat(); else loadConvs();
-}
-
-// ── Thread rendering ──
-function renderEmpty(){
-  $("#thread").innerHTML = '<div class="empty"><h1>Use AI on anything. Safely.</h1>'
-    + '<p>Type a message with real names, IDs, card numbers — anything. Wemik redacts it locally before the model sees it, then restores your real values in the reply.</p>'
-    + '<div class="samples">'
-    + sampleCard("Bank: dispute a charge","Customer Ahmed Al-Thani (QID 28412345678) wants to dispute a QAR 12,500 charge on card 4111 1111 1111 1111. Draft a reply.")
-    + sampleCard("Hospital: summarize a note","Summarize for patient Mariam Al-Sulaiti (MRN: 884512), diagnosed with type 2 diabetes. Draft a follow-up message.")
-    + sampleCard("Gov: draft a letter","Draft a letter to citizen Khalid Al-Marri, email khalid.marri@example.qa, about his application status.")
-    + sampleCard("Just chat","Explain how Wemik keeps sensitive data private when using ChatGPT or Claude.")
-    + '</div></div>';
-  $("#thread").querySelectorAll("[data-s]").forEach(n=>n.onclick=()=>{ $("#input").value=n.dataset.s; $("#input").focus(); autogrow(); });
-}
-function sampleCard(t,s){ return '<div class="sample" data-s="'+esc(s)+'"><b>'+esc(t)+'</b><span>'+esc(s.slice(0,68))+'…</span></div>'; }
-
-function renderThread(msgs){
-  const t = $("#thread");
-  t.innerHTML = '<div class="wrap" id="threadWrap"></div>';
-  const w = $("#threadWrap");
-  msgs.forEach(m=>w.appendChild(bubble(m)));
-  scroll();
-}
-function bubble(m){
-  const div = document.createElement("div");
-  div.className = "msg "+(m.role==="user"?"user":"ai");
-  const showReal = true;
-  const inner = m.role==="user"
-    ? '<div class="bubble" data-real="'+esc(m.real)+'" data-red="'+esc(m.redacted)+'">'+esc(m.real)+'</div>'
-    : '<div class="avatar ai">W</div><div><div class="bubble" data-real="'+esc(m.real)+'" data-red="'+esc(m.redacted)+'">'+esc(m.real)+'</div>'
-        + (m.provider?'<div class="meta">via '+esc(m.provider)+(m.model?' · '+esc(m.model):'')+(Number(m.protectedCount)>0?' · <span class="protchip" data-toggle>🛡️ '+m.protectedCount+' protected · show what the model saw</span>':'')+'</div>':'')
-      +'</div>';
-  div.innerHTML = m.role==="user"
-    ? '<div>'+inner+(Number(m.protectedCount)>0?'<div class="meta"><span class="protchip" data-toggle>🛡️ '+m.protectedCount+' value(s) protected · show what the model saw</span></div>':'')+'</div>'
-    : inner;
-  // toggle redacted/real
-  const chip = div.querySelector("[data-toggle]");
-  if(chip){
-    let real=true;
-    chip.onclick=()=>{
-      real=!real;
-      div.querySelectorAll(".bubble").forEach(b=>{
-        b.innerHTML = real ? esc(b.dataset.real) : phHighlight(b.dataset.red);
-      });
-      chip.innerHTML = real
-        ? (m.role==="user"?'🛡️ '+m.protectedCount+' value(s) protected · show what the model saw':'🛡️ '+m.protectedCount+' protected · show what the model saw')
-        : '👁️ showing redacted prompt · show real values';
-    };
-  }
-  return div;
-}
-function scroll(){ const t=$("#thread"); t.scrollTop=t.scrollHeight; }
-
-// ── Sending ──
-async function send(){
-  const text = $("#input").value.trim();
-  if(!text) return;
-  $("#input").value=""; autogrow();
-  $("#send").disabled=true;
-  if(!$("#threadWrap")) renderThread([]);
-  const w=$("#threadWrap");
-  w.appendChild(bubble({role:"user", real:text, redacted:text, protectedCount:0}));
-  const typing=document.createElement("div"); typing.className="msg ai"; typing.innerHTML='<div class="avatar ai">W</div><div class="bubble"><span class="typing">Wemik is redacting & thinking…</span></div>'; w.appendChild(typing); scroll();
-  try{
-    const r = await fetch("/api/chat/message",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({conversationId:CUR,text})});
-    const d = await r.json();
-    typing.remove();
-    if(!r.ok){ w.appendChild(bubble({role:"assistant", real:"⚠️ "+(d.error||"Something went wrong"), redacted:"", protectedCount:0})); scroll(); return; }
-    CUR = d.conversationId;
-    // replace the optimistic user bubble set with accurate protected counts by re-rendering
-    const view = await (await fetch("/api/chat/conversations/"+CUR)).json();
-    $("#convTitle").textContent = view.conversation.title;
-    renderThread(view.messages.map(m=>({role:m.role, real:m.real, redacted:m.redacted, protectedCount:m.protectedCount, provider:m.provider, model:m.model})));
-    if(d.note){ const n=document.createElement("div"); n.className="foothint"; n.style.color="#9A7B2E"; n.textContent=d.note; $("#threadWrap").appendChild(n); }
-    loadConvs();
-  }catch(e){ typing.remove(); w.appendChild(bubble({role:"assistant", real:"⚠️ "+e.message, redacted:"", protectedCount:0})); }
-  finally{ $("#send").disabled=false; $("#input").focus(); }
-}
-
-// ── Composer behavior ──
-function autogrow(){ const i=$("#input"); i.style.height="auto"; i.style.height=Math.min(i.scrollHeight,160)+"px"; }
-$("#input").addEventListener("input",autogrow);
-$("#input").addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); send(); } });
-$("#send").onclick=send;
-$("#newBtn").onclick=newChat;
-
-// ── Settings modal ──
-async function loadProvider(){
-  const p = await (await fetch("/api/chat/provider")).json();
-  $("#provPill").textContent = "model: "+p.provider+(p.model?" · "+p.model:"");
-  $("#provider").value=p.provider; $("#model").value=p.model||"";
-  $("#openaiStatus").innerHTML = p.hasOpenAIKey?'<span class="ok">✓ key saved</span>':'no key set';
-  $("#anthropicStatus").innerHTML = p.hasAnthropicKey?'<span class="ok">✓ key saved</span>':'no key set';
-  syncFields();
-}
-function syncFields(){
-  const v=$("#provider").value;
-  $("#openaiField").style.display = v==="openai"?"block":"none";
-  $("#anthropicField").style.display = v==="anthropic"?"block":"none";
-}
-$("#provider").onchange=syncFields;
-$("#settingsBtn").onclick=()=>{ $("#modal").classList.add("open"); loadProvider(); };
-$("#closeModal").onclick=()=>$("#modal").classList.remove("open");
-$("#saveProvider").onclick=async()=>{
-  const body={ provider:$("#provider").value, model:$("#model").value, openaiKey:$("#openaiKey").value, anthropicKey:$("#anthropicKey").value };
-  const r=await fetch("/api/chat/provider",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-  if(r.status===403){ alert("Only an Admin can change the model."); return; }
-  $("#openaiKey").value=""; $("#anthropicKey").value="";
-  $("#modal").classList.remove("open"); loadProvider();
-};
-
-// ── Boot ──
-renderEmpty();
-loadConvs();
-loadProvider();
-</script>
+  <script src="/mock-chat.js"></script>
 </body>
 </html>

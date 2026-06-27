@@ -163,3 +163,13 @@ db/
 * [0-9].sqlite
 * copy.*
 * copy [0-9].*
+
+# ─── PRIVATE — business / strategy / research. NEVER publish to the public repo ──
+# These stay on disk locally but are not tracked by git.
+.claude/
+WEMIK_STRATEGY.md
+COFOUNDER_BRIEF.md
+COMPETITIVE_LANDSCAPE.md
+GATEWAY_DEMO.md
+*.pptx
+# CONTEXT/ and .env are already ignored above.
