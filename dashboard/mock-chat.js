@@ -1,4 +1,27 @@
-const STORAGE_KEY = "wemik.mockChat.v2";
+const STORAGE_KEY = "wemik.mockChat.v3";
+
+// ─── Inline SVG icons (no emoji, ever) ────────────────────────────────────────
+const ICONS = {
+  plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  close: '<line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+  chevron: '<polyline points="9 6 15 12 9 18"/>',
+  shield: '<path d="M12 3l7 3v5c0 4.4-3 7.4-7 8.6C8 21.4 5 18.4 5 14V6z"/><polyline points="9.2 12 11.3 14.2 15 10.3"/>',
+  sheet: '<rect x="4" y="3" width="16" height="18" rx="2"/><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="12" y1="9" x2="12" y2="21"/>',
+  doc: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 20 8"/>',
+  sparkle: '<path d="M12 3l1.7 5L19 9.7l-5.3 1.7L12 17l-1.7-5.6L5 9.7l5.3-1.7z"/>',
+  read: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  send: '<line x1="12" y1="19" x2="12" y2="5"/><polyline points="6 11 12 5 18 11"/>',
+};
+function icon(name, cls = "") {
+  return `<svg class="ico ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`;
+}
+function fileExt(name) { const m = /\.([a-z0-9]+)$/i.exec(String(name || "")); return (m ? m[1] : "file").toUpperCase(); }
+function fileThumb(name) {
+  const ext = fileExt(name);
+  const isSheet = /^(xlsx|xls|csv)$/i.test(ext);
+  return `<span class="file-thumb ${isSheet ? "sheet" : "doc"}">${icon(isSheet ? "sheet" : "doc")}<b>${escapeHtml(ext)}</b></span>`;
+}
 
 const quickPrompts = [
   "Upload a customer portfolio and group it by credit-risk tier.",
@@ -53,7 +76,6 @@ const appShell = $(".app-shell");
 const conversationNav = $("#conversationNav");
 const chatContent = $("#chatContent");
 const conversationTitle = $("#conversationTitle");
-const quickPromptBar = $("#quickPrompts");
 const form = $("#composer");
 const input = $("#messageInput");
 const sendButton = $("#sendButton");
@@ -84,8 +106,12 @@ function saveStorage() {
     localStorage.removeItem(STORAGE_KEY);
     return;
   }
+  const conversations = state.conversations.map((c) => ({
+    ...c,
+    messages: c.messages.filter((m) => !m.thinking && !m.progress),
+  }));
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    conversations: state.conversations,
+    conversations,
     selectedId: state.selectedId,
     persist: state.persist,
     mode: state.mode,
@@ -98,7 +124,6 @@ function selectedConversation() {
 
 function render() {
   renderSidebar();
-  renderQuickPrompts();
   renderChat();
   renderAttachment();
   updateMascotStatus();
@@ -120,9 +145,9 @@ function renderAttachment() {
   const kb = Math.max(1, Math.round((state.pendingFile.base64.length * 0.75) / 1024));
   host.innerHTML = `
     <div class="attachment-chip">
-      <span class="ui-icon icon-settings" aria-hidden="true"></span>
-      <span><strong>${escapeHtml(state.pendingFile.name)}</strong> <small>${kb} KB · guarded on device</small></span>
-      <button class="remove-attach" type="button" id="removeAttach" aria-label="Remove file">&times;</button>
+      ${fileThumb(state.pendingFile.name)}
+      <span class="att-text"><strong>${escapeHtml(state.pendingFile.name)}</strong><small>${fileExt(state.pendingFile.name)} · ${kb} KB · guarded on device</small></span>
+      <button class="remove-attach" type="button" id="removeAttach" aria-label="Remove file">${icon("close")}</button>
     </div>`;
   $("#removeAttach").addEventListener("click", () => { state.pendingFile = null; render(); });
 }
@@ -156,18 +181,6 @@ function renderSidebar() {
       closeSidebar();
       setMascot("idle");
       render();
-    });
-  });
-}
-
-function renderQuickPrompts() {
-  quickPromptBar.innerHTML = quickPrompts.map((prompt) => `<button class="chip" type="button">${escapeHtml(prompt)}</button>`).join("");
-  quickPromptBar.querySelectorAll(".chip").forEach((button) => {
-    button.addEventListener("click", () => {
-      input.value = button.textContent;
-      autogrow();
-      render();
-      input.focus();
     });
   });
 }
@@ -220,14 +233,16 @@ function renderChat() {
 function messageTemplate(message, index) {
   const isAssistant = message.role === "assistant";
   const severity = message.severity ? ` severity-${message.severity}` : "";
-  const bubbleInner = message.portfolio
-    ? portfolioMarkup(message.portfolio, index)
-    : message.sections
-      ? sectionsMarkup(message.sections)
-      : message.attachment
-        ? `${attachmentMarkup(message.attachment)}${message.text ? `<div class="att-instruction">${escapeHtml(message.text)}</div>` : ""}`
-        : escapeHtml(message.text);
-  const showCopyRetry = isAssistant && !message.thinking && !message.portfolio;
+  const bubbleInner = message.progress
+    ? `<span class="progress-row">${icon(message.icon || "sparkle")}<span>${escapeHtml(message.text || "")}</span><span class="prog-dots"><i></i><i></i><i></i></span></span>`
+    : message.portfolio
+      ? portfolioMarkup(message.portfolio, index)
+      : message.sections
+        ? sectionsMarkup(message.sections)
+        : message.attachment
+          ? `${attachmentMarkup(message.attachment)}${message.text ? `<div class="att-instruction">${escapeHtml(message.text)}</div>` : ""}`
+          : escapeHtml(message.text);
+  const showCopyRetry = isAssistant && !message.thinking && !message.progress && !message.portfolio;
   return `
     <article class="message ${message.role}${severity}">
       ${isAssistant ? `<div class="message-avatar">${mascotMarkup(message.state || "idle")}</div>` : ""}
@@ -414,42 +429,58 @@ async function sendPortfolio(instruction) {
   input.value = "";
   autogrow();
   state.busy = true;
-  setMascot("scanning");
+  setMascot("thinking");
   render();
 
-  appendThinking("Reading the file and redacting sensitive columns on your device…");
+  // Do the real work immediately, in parallel with the staged progress UI.
+  const work = fetch("/api/chat/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fileName: file.name, instruction: prompt, fileBase64: file.base64 }),
+  }).then((r) => r.json().then((d) => ({ ok: r.ok, d }))).catch((e) => ({ ok: false, d: { error: e.message } }));
 
-  try {
-    const res = await fetch("/api/chat/upload", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fileName: file.name, instruction: prompt, fileBase64: file.base64 }),
-    });
-    const data = await res.json();
-    removeThinking();
-    if (!res.ok || !data.ok) {
-      conversation.messages.push({
-        role: "assistant", state: "error", severity: "error",
-        text: `Wemik could not process that file: ${escapeHtml(data.error || res.statusText)}. Nothing was sent off the device.`,
-      });
-      finishResponse("error", 1400);
-      return;
-    }
-    conversation.messages.push({ role: "assistant", state: "success", portfolio: data });
-    openArtifact(data);
-    finishResponse("success", 1100);
-  } catch (err) {
-    removeThinking();
+  // Believable pipeline — feels like a real redact → send → restore round-trip.
+  const steps = [
+    { icon: "sheet",    text: "Reading the spreadsheet…",                                ms: 950 },
+    { icon: "shield",   text: "Redacting names, QIDs and account numbers on device…",   ms: 1600 },
+    { icon: "sparkle",  text: "Sending only the redacted rows to the model…",            ms: 1700 },
+    { icon: "download", text: "Restoring the real values locally…",                      ms: 850 },
+  ];
+  for (const step of steps) { showProgress(step.icon, step.text); await delay(step.ms); }
+
+  const { ok, d } = await work;
+  clearProgress();
+
+  if (!ok || !d.ok) {
     conversation.messages.push({
       role: "assistant", state: "error", severity: "error",
-      text: `Wemik stopped before any handoff (${escapeHtml(err.message)}). Your file never left this machine.`,
+      text: `Wemik could not process that file: ${escapeHtml(d.error || "unknown error")}. Nothing was sent off the device.`,
     });
     finishResponse("error", 1400);
+    return;
   }
+  conversation.messages.push({ role: "assistant", state: "success", portfolio: d });
+  openArtifact(d);
+  finishResponse("success", 1100);
+}
+
+function showProgress(iconName, text) {
+  const conversation = selectedConversation();
+  if (!conversation) return;
+  let msg = conversation.messages.find((m) => m.progress);
+  if (!msg) { msg = { role: "assistant", progress: true, state: "thinking" }; conversation.messages.push(msg); }
+  msg.icon = iconName;
+  msg.text = text;
+  render();
+}
+
+function clearProgress() {
+  const conversation = selectedConversation();
+  if (conversation) conversation.messages = conversation.messages.filter((m) => !m.progress);
 }
 
 function attachmentMarkup(att) {
-  return `<div class="file-line"><span class="ui-icon icon-settings" aria-hidden="true"></span><strong>${escapeHtml(att.name)}</strong><small>guarded locally</small></div>`;
+  return `<div class="file-card">${fileThumb(att.name)}<span class="att-text"><strong>${escapeHtml(att.name)}</strong><small>guarded locally</small></span></div>`;
 }
 
 function portfolioMarkup(p, index) {
@@ -460,13 +491,13 @@ function portfolioMarkup(p, index) {
     `<span class="pf-tag"><b>${t.count}</b> ${escapeHtml(t.label)}</span>`).join("");
   return `
     <div class="portfolio">
-      <p class="pf-line">${escapeHtml(p.headline || "Customers grouped by risk.")} I protected <b>${p.protectedCount} sensitive values</b> on your device (${aiNote}) and restored the real names here.</p>
+      <p class="pf-line"><span class="pf-shield">${icon("shield")}</span><span>${escapeHtml(p.headline || "Customers grouped by risk.")} I protected <b>${p.protectedCount} sensitive values</b> on your device (${aiNote}) and restored the real names here.</span></p>
       <div class="pf-protected">${tags}</div>
       <div class="pf-counts">${counts}</div>
       <button class="pf-open" type="button" data-pf-open="${index}">
-        <span class="pf-open-icon" aria-hidden="true"></span>
+        ${fileThumb(p.downloadFileName || "reorganised.xlsx")}
         <span class="pf-open-text"><strong>${escapeHtml(p.downloadFileName || "reorganised.xlsx")}</strong><small>${p.rowCount} rows · click to preview &amp; download</small></span>
-        <span class="pf-open-arrow" aria-hidden="true">›</span>
+        ${icon("chevron", "pf-open-arrow")}
       </button>
     </div>`;
 }

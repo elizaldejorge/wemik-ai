@@ -286,7 +286,7 @@ app.use((err, _req, res, _next) => {
 export function startDashboard(autoOpen = true) {
   return new Promise((resolve) => {
     app.listen(PORT, HOST, () => {
-      console.log(`\n🛡️  Wemik running at http://localhost:${PORT} (127.0.0.1-only)\n`);
+      console.log(`\nWemik running at http://localhost:${PORT} (127.0.0.1-only)\n`);
       if (autoOpen) {
         open(`http://localhost:${PORT}`).catch(() => {});
       }
