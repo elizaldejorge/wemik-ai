@@ -12,6 +12,7 @@ const ICONS = {
   sparkle: '<path d="M12 3l1.7 5L19 9.7l-5.3 1.7L12 17l-1.7-5.6L5 9.7l5.3-1.7z"/>',
   read: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   send: '<line x1="12" y1="19" x2="12" y2="5"/><polyline points="6 11 12 5 18 11"/>',
+  trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
 };
 function icon(name, cls = "") {
   return `<svg class="ico ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`;
@@ -162,11 +163,15 @@ function renderSidebar() {
         <h3>${group}</h3>
         ${items.map((conversation) => {
           const protectedCount = conversation.messages.reduce((count, message) => count + (message.guard?.protectedCount || 0), 0);
+          const msgCount = conversation.messages.filter((m) => !m.thinking && !m.progress).length;
           return `
-            <button class="conversation-button ${conversation.id === state.selectedId ? "active" : ""}" type="button" data-conversation-id="${conversation.id}">
-              <span>${escapeHtml(conversation.title)}</span>
-              <small>${conversation.messages.length} messages ${protectedCount ? `+ ${protectedCount} guarded` : ""}</small>
-            </button>
+            <div class="conversation-row">
+              <button class="conversation-button ${conversation.id === state.selectedId ? "active" : ""}" type="button" data-conversation-id="${conversation.id}">
+                <span>${escapeHtml(conversation.title)}</span>
+                <small>${msgCount} message${msgCount === 1 ? "" : "s"}${protectedCount ? ` · ${protectedCount} guarded` : ""}</small>
+              </button>
+              <button class="conversation-delete" type="button" data-delete-conversation="${conversation.id}" aria-label="Delete chat" title="Delete chat">${icon("trash")}</button>
+            </div>
           `;
         }).join("")}
       </section>
@@ -183,6 +188,24 @@ function renderSidebar() {
       render();
     });
   });
+
+  conversationNav.querySelectorAll("[data-delete-conversation]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      deleteConversation(button.dataset.deleteConversation);
+    });
+  });
+}
+
+function deleteConversation(id) {
+  state.conversations = state.conversations.filter((c) => c.id !== id);
+  if (state.selectedId === id) {
+    state.selectedId = null;
+    state.artifact = null;
+    closeArtifact();
+    setMascot("idle");
+  }
+  render();
 }
 
 function renderChat() {
@@ -249,7 +272,7 @@ function messageTemplate(message, index) {
       <div class="message-body">
         <div class="bubble">${bubbleInner}</div>
         <div class="message-meta">
-          <span>${isAssistant ? state.mode : "You"}</span>
+          ${isAssistant ? `<span>${escapeHtml(state.mode)}</span>` : ""}
           ${guardBadge(message, index)}
           ${message.severity === "warning" ? "<span>Security warning</span>" : ""}
           ${message.severity === "error" ? "<span>Blocked before handoff</span>" : ""}
@@ -257,7 +280,6 @@ function messageTemplate(message, index) {
         </div>
         ${guardPanel(message, index)}
       </div>
-      ${isAssistant ? "" : `<div class="message-avatar user-avatar">J</div>`}
     </article>
   `;
 }

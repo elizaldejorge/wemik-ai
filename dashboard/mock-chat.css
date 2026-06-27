@@ -178,8 +178,19 @@ button:focus-visible, textarea:focus-visible, select:focus-visible {
 }
 .conversation-button:hover { background: rgba(8, 145, 178, .06); }
 .conversation-button.active { background: rgba(8, 145, 178, .1); border-color: var(--line-strong); color: #0b2e3a; }
+.conversation-button { padding-right: 32px; }
 .conversation-button span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .conversation-button small { display: block; color: var(--muted); margin-top: 2px; }
+.conversation-row { position: relative; }
+.conversation-delete {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center;
+  background: transparent; color: var(--faint); border: 0; cursor: pointer;
+  opacity: 0; transition: opacity .12s ease, background .12s ease, color .12s ease;
+}
+.conversation-row:hover .conversation-delete, .conversation-delete:focus-visible { opacity: 1; }
+.conversation-delete:hover { background: rgba(194, 65, 65, .12); color: var(--danger); }
+.conversation-delete .ico { width: 15px; height: 15px; }
 .sidebar-footer { border-top: 1px solid var(--line); padding: 14px; }
 .icon-text-button { width: 100%; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 9px; }
 
@@ -202,7 +213,7 @@ button:focus-visible, textarea:focus-visible, select:focus-visible {
 .mobile-menu-button { display: none; width: 38px; height: 38px; border-radius: 8px; }
 
 .chat-content { flex: 1; min-height: 0; overflow: auto; padding: 32px 0; background: linear-gradient(90deg, rgba(8, 145, 178, .035), transparent 18%, transparent 82%, rgba(8, 145, 178, .035)); }
-.chat-inner { width: min(1040px, calc(100% - 56px)); margin: 0 auto; }
+.chat-inner { width: min(1000px, calc(100% - 72px)); margin: 0 auto; }
 .empty-state { min-height: calc(100vh - 260px); display: grid; align-content: center; justify-items: center; text-align: center; padding: 24px 0; }
 .mascot-stage { width: 96px; height: 96px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(180deg, rgba(8, 145, 178, .08), rgba(255, 255, 255, .9)); margin-bottom: 20px; }
 .empty-state h1 { margin: 0 0 10px; font-size: clamp(26px, 4vw, 40px); line-height: 1.08; }
@@ -225,10 +236,13 @@ button:focus-visible, textarea:focus-visible, select:focus-visible {
 .message-list { display: flex; flex-direction: column; gap: 22px; }
 .message { display: flex; gap: 14px; align-items: flex-start; }
 .message.user { justify-content: flex-end; }
+.message.assistant .message-body { flex: 1 1 auto; }
+.message.user .message-body { flex: 0 1 auto; max-width: min(640px, 80%); }
+.message.user .message-meta:empty { display: none; }
 .message-avatar { position: relative; width: 52px; height: 52px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; }
 .message-avatar .mascot { position: absolute; left: 50%; top: 50%; margin: -32px 0 0 -32px; transform: scale(.72); transform-origin: center; }
 .user-avatar { background: #e0f7fb; color: #062127; font-weight: 900; }
-.message-body { max-width: min(820px, 82%); }
+.message-body { max-width: 100%; min-width: 0; }
 .bubble { border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; white-space: pre-wrap; word-break: break-word; background: rgba(255, 255, 255, .92); box-shadow: 0 8px 24px rgba(22, 47, 61, .06); }
 .user .bubble { background: #e0f7fb; color: #062127; border-color: rgba(8, 145, 178, .22); box-shadow: none; }
 .message-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 12px; margin-top: 7px; }
@@ -279,7 +293,7 @@ button:focus-visible, textarea:focus-visible, select:focus-visible {
 .quick-prompts { width: min(1040px, calc(100% - 56px)); margin: 0 auto 10px; display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
 .chip { flex: none; border-radius: 999px; padding: 7px 11px; color: #21414c; }
 .composer {
-  width: min(1040px, calc(100% - 56px));
+  width: min(1000px, calc(100% - 72px));
   margin: 0 auto;
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) 40px;
