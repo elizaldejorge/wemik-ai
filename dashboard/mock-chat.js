@@ -403,18 +403,20 @@ async function sendMessage(text) {
   }
 
   const warning = isWarningPrompt(text);
+  const replyText = restoredResponseText(userMessage.guard.redactedText, warning, userMessage.guard.findings);
   conversation.messages.push({
     role: "assistant",
-    text: restoredResponseText(userMessage.guard.redactedText, warning, userMessage.guard.findings),
+    text: replyText,
     state: warning ? "warning" : "success",
     severity: warning ? "warning" : undefined,
-    sections: responseSections(userMessage.guard.redactedText, warning),
-    guard: {
-      ...userMessage.guard,
-      providerPrompt: userMessage.guard.redactedText,
-    },
+    guard: { ...userMessage.guard, providerPrompt: userMessage.guard.redactedText },
   });
-  finishResponse(warning ? "warning" : "success", warning ? 1600 : 900);
+  setMascot(warning ? "warning" : "success");
+  render();
+  const bubble = chatContent.querySelector(".message.assistant:last-of-type .bubble");
+  setComposerBusy(false);
+  typeText(bubble, replyText, { ticks: 80 }); // non-blocking
+  setTimeout(() => { state.mascot = "idle"; updateMascotStatus(); }, 900);
 }
 
 async function sendPortfolio(instruction) {
@@ -441,10 +443,10 @@ async function sendPortfolio(instruction) {
 
   // Believable pipeline — feels like a real redact → send → restore round-trip.
   const steps = [
-    { icon: "sheet",    text: "Reading the spreadsheet…",                                ms: 950 },
-    { icon: "shield",   text: "Redacting names, QIDs and account numbers on device…",   ms: 1600 },
-    { icon: "sparkle",  text: "Sending only the redacted rows to the model…",            ms: 1700 },
-    { icon: "download", text: "Restoring the real values locally…",                      ms: 850 },
+    { icon: "sheet",    text: "Reading the spreadsheet…",                                ms: 1500 },
+    { icon: "shield",   text: "Redacting names, QIDs and account numbers on device…",   ms: 2600 },
+    { icon: "sparkle",  text: "Sending only the redacted rows to the model…",            ms: 2900 },
+    { icon: "download", text: "Restoring the real values locally…",                      ms: 1700 },
   ];
   for (const step of steps) { showProgress(step.icon, step.text); await delay(step.ms); }
 
@@ -460,18 +462,36 @@ async function sendPortfolio(instruction) {
     return;
   }
   conversation.messages.push({ role: "assistant", state: "success", portfolio: d });
-  openArtifact(d);
-  finishResponse("success", 1100);
+  setMascot("success");
+  render();
+  const lineEl = chatContent.querySelector(".message.assistant:last-of-type .pf-line > span:last-child");
+  const fullLine = lineEl ? lineEl.textContent : "";
+  setComposerBusy(false);                          // release the composer right away
+  if (lineEl) typeText(lineEl, fullLine, { ticks: 90 }); // cosmetic typing, non-blocking
+  await delay(280);
+  openArtifact(d);                                 // panel slides in a beat later
+  setTimeout(() => { state.mascot = "idle"; updateMascotStatus(); }, 1200);
 }
 
 function showProgress(iconName, text) {
   const conversation = selectedConversation();
   if (!conversation) return;
   let msg = conversation.messages.find((m) => m.progress);
-  if (!msg) { msg = { role: "assistant", progress: true, state: "thinking" }; conversation.messages.push(msg); }
+  if (!msg) {
+    msg = { role: "assistant", progress: true, state: "thinking", icon: iconName, text };
+    conversation.messages.push(msg);
+    render();
+    return;
+  }
   msg.icon = iconName;
   msg.text = text;
-  render();
+  // update the row in place so the message list doesn't re-animate every step
+  const row = chatContent.querySelector(".progress-row");
+  if (row) {
+    row.innerHTML = `${icon(iconName)}<span>${escapeHtml(text)}</span><span class="prog-dots"><i></i><i></i><i></i></span>`;
+  } else {
+    render();
+  }
 }
 
 function clearProgress() {
@@ -656,13 +676,11 @@ function removeThinking() {
 }
 
 function finishResponse(mascotState, returnDelay) {
-  state.busy = false;
+  setComposerBusy(false);
   setMascot(mascotState);
   render();
-  setTimeout(() => {
-    setMascot("idle");
-    render();
-  }, returnDelay);
+  // reset the ambient mascot without a full re-render (keeps entrance animations from replaying)
+  setTimeout(() => { state.mascot = "idle"; updateMascotStatus(); }, returnDelay || 900);
 }
 
 function isWarningPrompt(text) {
@@ -698,6 +716,33 @@ function autogrow() {
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Human-like typewriter — types `text` into `el` over a roughly constant duration.
+function typeText(el, text, { ticks = 150, intervalMs = 17 } = {}) {
+  return new Promise((resolve) => {
+    if (!el) return resolve();
+    const full = String(text ?? "");
+    const step = Math.max(1, Math.ceil(full.length / ticks));
+    el.textContent = "";
+    el.classList.add("type-caret");
+    let i = 0;
+    const tick = () => {
+      i += step;
+      el.textContent = full.slice(0, i);
+      chatContent.scrollTop = chatContent.scrollHeight;
+      if (i < full.length) setTimeout(tick, intervalMs);
+      else { el.classList.remove("type-caret"); resolve(); }
+    };
+    tick();
+  });
+}
+
+// Update the send button without re-rendering (so animations don't replay).
+function setComposerBusy(isBusy) {
+  state.busy = isBusy;
+  sendButton.disabled = isBusy || (input.value.trim().length === 0 && !state.pendingFile);
+  sendButton.classList.toggle("loading", isBusy);
 }
 
 function escapeHtml(value) {
@@ -755,7 +800,8 @@ function fileToBase64(file) {
 
 input.addEventListener("input", () => {
   autogrow();
-  render();
+  // update only the send button — avoid re-rendering (and re-animating) the chat on every keystroke
+  sendButton.disabled = state.busy || (input.value.trim().length === 0 && !state.pendingFile);
 });
 
 input.addEventListener("keydown", (event) => {

@@ -589,3 +589,54 @@ body.reduce-motion .mascot, body.reduce-motion .typing-dots i, body.reduce-motio
 .pf-shield .ico { width: 18px; height: 18px; }
 .pf-open .file-thumb { width: 38px; height: 38px; }
 .pf-open-arrow { margin-left: auto; width: 20px; height: 20px; color: var(--accent-2); }
+
+/* ─── Motion: entrance pops, staggered reveal, panel slide, typing caret ─────── */
+@keyframes popIn { from { opacity: 0; transform: translateY(9px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes staggerIn { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+@keyframes panelIn { from { opacity: 0; transform: translateX(34px); } to { opacity: 1; transform: none; } }
+@keyframes chipPop { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: none; } }
+@keyframes caretBlink { 50% { opacity: 0; } }
+
+.message { animation: popIn .34s cubic-bezier(.2,.85,.25,1) both; }
+.message-avatar { animation: chipPop .4s cubic-bezier(.2,.9,.25,1) both; }
+
+/* staggered reveal of the result pieces */
+.portfolio .pf-protected { animation: staggerIn .4s ease both .06s; }
+.portfolio .pf-counts    { animation: staggerIn .4s ease both .16s; }
+.portfolio .pf-open      { animation: staggerIn .44s cubic-bezier(.2,.85,.25,1) both .28s; }
+.pf-protected .pf-tag       { animation: chipPop .34s ease both; }
+.pf-protected .pf-tag:nth-child(2) { animation-delay: .05s; }
+.pf-protected .pf-tag:nth-child(3) { animation-delay: .1s; }
+.pf-counts .pf-count-chip   { animation: chipPop .34s ease both; }
+.pf-counts .pf-count-chip:nth-child(2) { animation-delay: .07s; }
+.pf-counts .pf-count-chip:nth-child(3) { animation-delay: .14s; }
+
+/* attachment / file cards drift in */
+.attachment-preview { animation: staggerIn .3s ease both; }
+.file-card { animation: popIn .34s ease both; }
+
+/* artifact panel slides in smoothly each time it opens */
+.app-shell[data-artifact="open"] .artifact-panel { animation: panelIn .36s cubic-bezier(.2,.8,.2,1); }
+.artifact-table tbody tr { animation: staggerIn .26s ease both; }
+.artifact-table tbody tr:nth-child(2) { animation-delay: .03s; }
+.artifact-table tbody tr:nth-child(3) { animation-delay: .06s; }
+.artifact-table tbody tr:nth-child(4) { animation-delay: .09s; }
+.artifact-table tbody tr:nth-child(n+5) { animation-delay: .12s; }
+
+/* typing caret */
+.type-caret::after {
+  content: ""; display: inline-block; width: 2px; height: 1.05em; margin-left: 2px;
+  background: var(--accent-2); vertical-align: -2px; animation: caretBlink .85s steps(1) infinite;
+}
+
+/* honour the "reduce assistant motion" toggle */
+body.reduce-motion .message,
+body.reduce-motion .message-avatar,
+body.reduce-motion .portfolio > *,
+body.reduce-motion .pf-tag,
+body.reduce-motion .pf-count-chip,
+body.reduce-motion .file-card,
+body.reduce-motion .attachment-preview,
+body.reduce-motion .artifact-panel,
+body.reduce-motion .artifact-table tbody tr { animation: none !important; }
+body.reduce-motion .type-caret::after { display: none; }
