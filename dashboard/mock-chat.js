@@ -13,6 +13,9 @@ const ICONS = {
   read: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   send: '<line x1="12" y1="19" x2="12" y2="5"/><polyline points="6 11 12 5 18 11"/>',
   trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
+  pin: '<line x1="12" y1="17" x2="12" y2="22"/><path d="M9 4h6l-1 6 2.5 2.5V15H7.5v-2.5L10 10z"/>',
+  copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  check: '<polyline points="20 6 9 17 4 12"/>',
 };
 function icon(name, cls = "") {
   return `<svg class="ico ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`;
@@ -265,20 +268,21 @@ function messageTemplate(message, index) {
         : message.attachment
           ? `${attachmentMarkup(message.attachment)}${message.text ? `<div class="att-instruction">${escapeHtml(message.text)}</div>` : ""}`
           : escapeHtml(message.text);
-  const showCopyRetry = isAssistant && !message.thinking && !message.progress && !message.portfolio;
+  const pinned = message.pinned ? " pinned" : "";
   return `
-    <article class="message ${message.role}${severity}">
+    <article class="message ${message.role}${severity}${pinned}">
       ${isAssistant ? `<div class="message-avatar">${mascotMarkup(message.state || "idle")}</div>` : ""}
       <div class="message-body">
         <div class="bubble">${bubbleInner}</div>
         <div class="message-meta">
           ${isAssistant ? `<span>${escapeHtml(state.mode)}</span>` : ""}
           ${guardBadge(message, index)}
+          ${message.pinned ? `<span class="pinned-tag">${icon("pin")} Pinned</span>` : ""}
           ${message.severity === "warning" ? "<span>Security warning</span>" : ""}
           ${message.severity === "error" ? "<span>Blocked before handoff</span>" : ""}
-          ${showCopyRetry ? `<button class="mini-action" type="button" data-copy-message="${index}">Copy</button><button class="mini-action" type="button" data-retry-message="${index}">Retry</button>` : ""}
         </div>
         ${guardPanel(message, index)}
+        ${messageActions(message, index)}
       </div>
     </article>
   `;
@@ -338,6 +342,40 @@ function guardPanel(message, index) {
   `;
 }
 
+function messageActions(message, index) {
+  if (message.role !== "assistant" || message.thinking || message.progress) return "";
+  const hasContent = Boolean(message.portfolio || (message.text && message.text.trim()));
+  if (!hasContent) return "";
+  const canDownload = Boolean(message.portfolio?.downloadXlsxBase64 || (message.text && message.text.trim()));
+  return `
+    <div class="message-actions">
+      <button class="msg-action ${message.pinned ? "active" : ""}" type="button" data-pin="${index}" title="${message.pinned ? "Unpin" : "Pin"}" aria-label="Pin">${icon("pin")}</button>
+      <button class="msg-action" type="button" data-copy="${index}" title="Copy" aria-label="Copy">${icon("copy")}</button>
+      ${canDownload ? `<button class="msg-action" type="button" data-download="${index}" title="Download" aria-label="Download">${icon("download")}</button>` : ""}
+    </div>`;
+}
+
+function messageCopyText(message) {
+  const p = message.portfolio;
+  if (p) {
+    if (p.mode === "draft") {
+      return [`${p.headline}`, ...(p.letters || []).map((l) => `— ${l.name} —\nEnglish:\n${l.en}\n\nArabic:\n${l.ar}`)].join("\n\n");
+    }
+    const groups = (p.groups || []).map((g) => `${g.tier} (${g.count}): ${(g.members || []).join(", ")}`).join("\n");
+    return `${p.headline}\n\n${groups}`;
+  }
+  return message.text || "";
+}
+
+function downloadText(text, fileName) {
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
 function attachMessageActions() {
   chatContent.querySelectorAll("[data-toggle-guard]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -347,23 +385,40 @@ function attachMessageActions() {
     });
   });
 
-  chatContent.querySelectorAll("[data-copy-message]").forEach((button) => {
-    button.addEventListener("click", async () => {
+  chatContent.querySelectorAll("[data-pin]").forEach((button) => {
+    button.addEventListener("click", () => {
       const conversation = selectedConversation();
-      const message = conversation?.messages[Number(button.dataset.copyMessage)];
+      const message = conversation?.messages[Number(button.dataset.pin)];
       if (!message) return;
-      await navigator.clipboard?.writeText(message.text);
-      button.textContent = "Copied";
-      setTimeout(() => { button.textContent = "Copy"; }, 1200);
+      message.pinned = !message.pinned;
+      render();
     });
   });
 
-  chatContent.querySelectorAll("[data-retry-message]").forEach((button) => {
+  chatContent.querySelectorAll("[data-copy]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const conversation = selectedConversation();
+      const message = conversation?.messages[Number(button.dataset.copy)];
+      if (!message) return;
+      try { await navigator.clipboard.writeText(messageCopyText(message)); } catch { /* clipboard blocked */ }
+      const original = button.innerHTML;
+      button.innerHTML = icon("check");
+      button.classList.add("done");
+      setTimeout(() => { button.innerHTML = original; button.classList.remove("done"); }, 1200);
+    });
+  });
+
+  chatContent.querySelectorAll("[data-download]").forEach((button) => {
     button.addEventListener("click", () => {
-      input.value = "Retry with a shorter incident note.";
-      autogrow();
-      render();
-      input.focus();
+      const conversation = selectedConversation();
+      const message = conversation?.messages[Number(button.dataset.download)];
+      if (!message) return;
+      if (message.portfolio?.downloadXlsxBase64) {
+        downloadBase64(message.portfolio.downloadXlsxBase64, message.portfolio.downloadFileName || "wemik-output.xlsx");
+      } else if (message.text) {
+        const title = (conversation.title || "wemik").replace(/[^a-z0-9-_]+/gi, "-").slice(0, 40);
+        downloadText(message.text, `${title}.txt`);
+      }
     });
   });
 
@@ -587,6 +642,7 @@ function renderArtifact() {
   const p = state.artifact;
   if (!p) { appShell.dataset.artifact = "closed"; return; }
   const isDraft = p.mode === "draft";
+  $("#artifactIcon").innerHTML = fileThumb(p.downloadFileName || "output.xlsx");
   $("#artifactName").textContent = p.downloadFileName || "Output file";
   $("#artifactMeta").textContent = isDraft
     ? `${p.draftedCount} message${p.draftedCount === 1 ? "" : "s"} · ${p.protectedCount} values restored locally`

@@ -512,8 +512,8 @@ body.reduce-motion .mascot, body.reduce-motion .typing-dots i, body.reduce-motio
 .app-shell[data-artifact="open"] .artifact-panel { display: flex; }
 .artifact-head { flex: none; display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
 .artifact-title { display: flex; align-items: center; gap: 11px; min-width: 0; }
-.artifact-icon { width: 36px; height: 36px; flex: none; border-radius: 9px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); position: relative; }
-.artifact-icon::after { content: "▦"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 18px; }
+.artifact-icon { flex: none; display: inline-flex; }
+.artifact-icon .file-thumb { width: 38px; height: 38px; }
 .artifact-title-text { display: flex; flex-direction: column; min-width: 0; }
 .artifact-title-text strong { font-size: 14.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .artifact-title-text small { color: var(--muted); font-size: 12px; }
@@ -671,3 +671,18 @@ body.reduce-motion .type-caret::after { display: none; }
 .letter-pane.ar { background: #fbfdfe; }
 .letter-pane.ar p { font-size: 14.5px; line-height: 1.85; }
 .letter-pane.ar .letter-lang { color: var(--gold, #b7791f); }
+
+/* ─── Response action bar (pin / copy / download) ───────────────────────────── */
+.message-actions { display: flex; gap: 4px; margin-top: 8px; }
+.msg-action {
+  width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+  border: 1px solid transparent; background: transparent; color: var(--faint); cursor: pointer;
+  transition: background .12s ease, color .12s ease;
+}
+.msg-action:hover { background: var(--panel-3); color: var(--accent-2); }
+.msg-action.active { color: var(--accent); }
+.msg-action.done { color: var(--success); }
+.msg-action .ico { width: 16px; height: 16px; }
+.pinned-tag { display: inline-flex; align-items: center; gap: 4px; color: var(--accent-2); font-weight: 800; }
+.pinned-tag .ico { width: 13px; height: 13px; }
+.message.assistant.pinned .message-body { box-shadow: -10px 0 0 -8px var(--accent); }
