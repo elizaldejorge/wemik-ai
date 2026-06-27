@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Wemik - Cybersecurity AI Chat</title>
+  <title>Wemik — Secure AI</title>
   <link rel="icon" type="image/png" href="/wemik-logo.png" />
   <link rel="stylesheet" href="/mock-chat.css" />
 </head>
 <body>
-  <div class="app-shell" data-sidebar="closed">
+  <div class="app-shell" data-sidebar="closed" data-artifact="closed">
     <div class="scrim" data-close-sidebar></div>
 
     <aside class="sidebar" aria-label="Conversation sidebar">
@@ -16,7 +16,7 @@
         <span class="brand-mark"><img src="/wemik-logo.png" alt="" /></span>
         <span>
           <strong>Wemik</strong>
-          <small>CYBER AI</small>
+          <small>SECURE AI</small>
         </span>
       </div>
 
@@ -42,8 +42,11 @@
         </button>
         <div class="header-title">
           <span id="conversationTitle">New chat</span>
-          <small>Local redaction preview · provider-safe prompt handoff</small>
+          <small>Sensitive data is redacted on this device — only placeholders are sent</small>
         </div>
+        <button class="header-pill" id="headerPrivacy" type="button" aria-label="Privacy status">
+          <span class="dot"></span> On-device guard
+        </button>
       </header>
 
       <section class="chat-content" id="chatContent" aria-live="polite"></section>
@@ -69,6 +72,32 @@
         </form>
       </section>
     </main>
+
+    <aside class="artifact-panel" id="artifactPanel" aria-label="Document preview">
+      <header class="artifact-head">
+        <div class="artifact-title">
+          <span class="artifact-icon" aria-hidden="true"></span>
+          <div class="artifact-title-text">
+            <strong id="artifactName">Reorganised file</strong>
+            <small id="artifactMeta">restored locally on your device</small>
+          </div>
+        </div>
+        <div class="artifact-actions">
+          <button class="artifact-download" id="artifactDownload" type="button">
+            <span aria-hidden="true">↓</span> Download
+          </button>
+          <button class="icon-button" id="artifactClose" type="button" aria-label="Close preview">
+            <span class="ui-icon icon-close" aria-hidden="true"></span>
+          </button>
+        </div>
+      </header>
+      <div class="artifact-tabs" id="artifactTabs">
+        <button class="artifact-tab active" type="button" data-artifact-tab="table">Reorganised sheet</button>
+        <button class="artifact-tab" type="button" data-artifact-tab="sent">What the model saw</button>
+      </div>
+      <div class="artifact-body" id="artifactBody"></div>
+      <footer class="artifact-foot" id="artifactFoot"></footer>
+    </aside>
   </div>
 
   <div class="modal" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
@@ -87,9 +116,9 @@
         <label class="field">
           <span>Assistant mode</span>
           <select id="modeSelect">
-            <option>Security Copilot</option>
-            <option>Threat Analyst</option>
-            <option>Compliance Reviewer</option>
+            <option>Banking Assistant</option>
+            <option>Document Analyst</option>
+            <option>General</option>
           </select>
         </label>
         <label class="toggle-row">

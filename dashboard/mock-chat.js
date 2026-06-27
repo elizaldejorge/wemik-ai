@@ -1,43 +1,36 @@
 const STORAGE_KEY = "wemik.mockChat.v2";
 
 const quickPrompts = [
-  "Analyze login alert for Ahmed Khan at ahmed.khan@acme.com from 203.0.113.14.",
-  "Draft a breach update for Maria Lopez, SSN 123-45-6789, account 4111 1111 1111 1111.",
-  "Run a security scan summary for payroll-api.acme.com and classify risk.",
-  "Assess this phishing email and recommend next steps.",
+  "Upload a customer portfolio and group it by credit-risk tier.",
+  "Summarise a loan book and flag accounts 90+ days overdue.",
+  "Draft a collections message for an overdue customer — keep names on-device.",
+  "How does Wemik keep sensitive data on this machine?",
 ];
 
 const starterConversations = [
   {
     id: crypto.randomUUID(),
-    title: "Sensitive alert review",
+    title: "Customer portfolio triage",
     group: "Today",
     updatedAt: Date.now() - 1000 * 60 * 12,
     messages: [
       {
         role: "assistant",
-        text: "Share a prompt with real operational context. Wemik will scan it locally, replace sensitive values with placeholders before provider handoff, then restore values in the response you see here.",
+        text: "Attach a customer spreadsheet and tell me how to organise it — by credit-risk tier, overdue accounts, branch, anything. Names, QIDs and account numbers are redacted on this device; only placeholders reach the model, and the real values are restored right here for you.",
         state: "idle",
       },
     ],
   },
   {
     id: crypto.randomUUID(),
-    title: "Incident update",
+    title: "Loan book review",
     group: "Previous 7 Days",
     updatedAt: Date.now() - 1000 * 60 * 60 * 30,
     messages: [
-      guardedUserMessage("Draft a ransomware update for Maria Lopez at maria.lopez@acme.com about host FIN-441."),
       {
         role: "assistant",
-        text: "Wemik restored the local values after receiving a provider-safe response. The incident note should mention Maria Lopez and host FIN-441 only inside your local workspace.",
+        text: "Drop in a loan book and I can summarise total exposure, flag accounts past due, and group by segment — without your customers' identities ever leaving the machine.",
         state: "success",
-        sections: responseSections("Draft a ransomware update for [PERSON_1] at [EMAIL_1] about host FIN-441.", true),
-        guard: {
-          protectedCount: 2,
-          providerPrompt: "Draft a ransomware update for [PERSON_1] at [EMAIL_1] about host FIN-441.",
-          restoredValues: ["Maria Lopez", "maria.lopez@acme.com"],
-        },
       },
     ],
   },
@@ -49,8 +42,10 @@ const state = {
   mascot: "idle",
   busy: false,
   persist: true,
-  mode: "Security Copilot",
+  mode: "Banking Assistant",
   pendingFile: null, // { name, base64 } staged for the secure upload flow
+  artifact: null,    // active portfolio result shown in the right-side panel
+  artifactTab: "table",
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -69,7 +64,7 @@ function boot() {
   state.conversations = stored?.conversations?.length ? stored.conversations : starterConversations;
   state.selectedId = stored?.selectedId ?? null;
   state.persist = stored?.persist ?? true;
-  state.mode = stored?.mode ?? "Security Copilot";
+  state.mode = stored?.mode ?? "Banking Assistant";
 
   $("#persistToggle").checked = state.persist;
   $("#modeSelect").value = state.mode;
@@ -156,6 +151,8 @@ function renderSidebar() {
   conversationNav.querySelectorAll("[data-conversation-id]").forEach((button) => {
     button.addEventListener("click", () => {
       state.selectedId = button.dataset.conversationId;
+      state.artifact = null;
+      closeArtifact();
       closeSidebar();
       setMascot("idle");
       render();
@@ -333,19 +330,11 @@ function attachMessageActions() {
     });
   });
 
-  chatContent.querySelectorAll("[data-pf-seen]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const panel = button.closest(".portfolio")?.querySelector("[data-pf-seen-panel]");
-      if (panel) panel.hidden = !panel.hidden;
-    });
-  });
-
-  chatContent.querySelectorAll("[data-pf-download]").forEach((button) => {
+  chatContent.querySelectorAll("[data-pf-open]").forEach((button) => {
     button.addEventListener("click", () => {
       const conversation = selectedConversation();
-      const portfolio = conversation?.messages[Number(button.dataset.pfDownload)]?.portfolio;
-      if (!portfolio?.downloadXlsxBase64) return;
-      downloadBase64(portfolio.downloadXlsxBase64, portfolio.downloadFileName || "wemik-reorganised.xlsx");
+      const portfolio = conversation?.messages[Number(button.dataset.pfOpen)]?.portfolio;
+      if (portfolio) openArtifact(portfolio);
     });
   });
 }
@@ -447,6 +436,7 @@ async function sendPortfolio(instruction) {
       return;
     }
     conversation.messages.push({ role: "assistant", state: "success", portfolio: data });
+    openArtifact(data);
     finishResponse("success", 1100);
   } catch (err) {
     removeThinking();
@@ -463,37 +453,70 @@ function attachmentMarkup(att) {
 }
 
 function portfolioMarkup(p, index) {
-  const tierClass = (t) => /high/i.test(t) ? "high" : /med/i.test(t) ? "medium" : "low";
-  const aiPill = p.aiUsed
-    ? `<span class="pf-pill ai">✦ ${escapeHtml(p.provider)} regrouped it</span>`
-    : `<span class="pf-pill">On-device grouping</span>`;
+  const aiNote = p.aiUsed ? `${escapeHtml(p.provider)} regrouped the redacted rows` : "grouped on-device";
+  const counts = (p.groups || []).map((g) =>
+    `<span class="pf-count-chip ${/high/i.test(g.tier) ? "high" : /med/i.test(g.tier) ? "medium" : "low"}">${g.count} ${escapeHtml(g.tier.replace(/ ?risk/i, ""))}</span>`).join("");
   const tags = (p.protectedByType || []).map((t) =>
     `<span class="pf-tag"><b>${t.count}</b> ${escapeHtml(t.label)}</span>`).join("");
-  const tiers = (p.groups || []).map((g) => `
-    <div class="pf-tier ${tierClass(g.tier)}">
-      <div class="pf-tier-head"><strong>${escapeHtml(g.tier)}</strong><span class="pf-count">${g.count} customer${g.count === 1 ? "" : "s"}</span></div>
-      ${g.rule ? `<div class="pf-rule">${escapeHtml(g.rule)}</div>` : ""}
-      ${g.summary ? `<p class="pf-summary">${escapeHtml(g.summary)}</p>` : ""}
-      <div class="pf-members">${(g.members || []).slice(0, 12).map((m) => `<span>${escapeHtml(m)}</span>`).join("")}${g.members.length > 12 ? `<span>+${g.members.length - 12} more</span>` : ""}</div>
-    </div>`).join("");
-
   return `
     <div class="portfolio">
-      <div class="portfolio-head">
-        <span class="pf-pill">🔒 ${p.protectedCount} values protected locally</span>
-        ${aiPill}
-      </div>
-      <div class="portfolio-headline">${escapeHtml(p.headline || "")}</div>
+      <p class="pf-line">${escapeHtml(p.headline || "Customers grouped by risk.")} I protected <b>${p.protectedCount} sensitive values</b> on your device (${aiNote}) and restored the real names here.</p>
       <div class="pf-protected">${tags}</div>
-      <div class="pf-tiers">${tiers}</div>
-      <div class="pf-actions">
-        <button class="pf-download" type="button" data-pf-download="${index}">⬇ Download reorganised Excel</button>
-        <button class="pf-seen" type="button" data-pf-seen>👁 What the model saw</button>
-      </div>
-      <div class="pf-seen-panel" data-pf-seen-panel hidden>
-        <pre>${escapeHtml(p.redactedPreview || "")}</pre>
-      </div>
+      <div class="pf-counts">${counts}</div>
+      <button class="pf-open" type="button" data-pf-open="${index}">
+        <span class="pf-open-icon" aria-hidden="true"></span>
+        <span class="pf-open-text"><strong>${escapeHtml(p.downloadFileName || "reorganised.xlsx")}</strong><small>${p.rowCount} rows · click to preview &amp; download</small></span>
+        <span class="pf-open-arrow" aria-hidden="true">›</span>
+      </button>
     </div>`;
+}
+
+// ─── Right-side artifact panel (the reorganised spreadsheet preview) ───────────
+function openArtifact(portfolio) {
+  state.artifact = portfolio;
+  state.artifactTab = "table";
+  appShell.dataset.artifact = "open";
+  renderArtifact();
+}
+
+function closeArtifact() {
+  appShell.dataset.artifact = "closed";
+}
+
+function renderArtifact() {
+  const p = state.artifact;
+  if (!p) { appShell.dataset.artifact = "closed"; return; }
+  $("#artifactName").textContent = p.downloadFileName || "Reorganised file";
+  $("#artifactMeta").textContent = `${p.rowCount} rows · ${p.protectedCount} values restored locally`;
+
+  const tab = state.artifactTab || "table";
+  $("#artifactTabs").querySelectorAll("[data-artifact-tab]").forEach((b) =>
+    b.classList.toggle("active", b.dataset.artifactTab === tab));
+
+  const body = $("#artifactBody");
+  if (tab === "sent") {
+    body.innerHTML = `
+      <div class="artifact-sent">
+        <p class="artifact-note">This is exactly what left your device — identities replaced with placeholders, the financial figures kept so the model could still reason.</p>
+        <pre>${escapeHtml(p.redactedPreview || "")}</pre>
+      </div>`;
+  } else {
+    body.innerHTML = artifactTableMarkup(p.preview || { headers: [], rows: [] });
+  }
+  $("#artifactFoot").innerHTML = `<span class="foot-dot"></span> Real values restored only on this machine — nothing identifying was sent to the model.`;
+}
+
+function artifactTableMarkup(preview) {
+  const headers = preview.headers || [];
+  const tierCol = preview.tierColumn;
+  const tierClass = (t) => /high/i.test(t) ? "t-high" : /med/i.test(t) ? "t-med" : /low/i.test(t) ? "t-low" : "";
+  const head = `<tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}</tr>`;
+  const rows = (preview.rows || []).map((r) => `<tr>${headers.map((h) => {
+    const v = r[h];
+    if (h === tierCol) return `<td class="tier-cell ${tierClass(v)}">${escapeHtml(String(v ?? ""))}</td>`;
+    return `<td>${escapeHtml(String(v ?? ""))}</td>`;
+  }).join("")}</tr>`).join("");
+  return `<div class="artifact-table-wrap"><table class="artifact-table"><thead>${head}</thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function guardedUserMessage(text) {
@@ -612,33 +635,21 @@ function finishResponse(mascotState, returnDelay) {
 }
 
 function isWarningPrompt(text) {
-  return /phishing|malware|ransomware|credential|breach|exfiltration|warning|critical|cve|ssn|card|account/i.test(text);
+  return /phishing|malware|ransomware|breach|exfiltration/i.test(text);
 }
 
-function responseSections(redactedPrompt, warning) {
-  if (warning) {
-    return [
-      { title: "Risk", body: "High sensitivity or security-risk language was detected. Treat links, attachments, credentials, and identity data as untrusted until validated." },
-      { title: "What provider saw", body: redactedPrompt },
-      { title: "Recommended action", body: "Preserve evidence, isolate suspicious indicators, verify domains out of band, and assign an owner before user-facing communication." },
-      { title: "Audit note", body: "The prompt was transformed locally before provider handoff; real values are restored only in this workspace." },
-    ];
-  }
-
+function responseSections(redactedPrompt) {
   return [
-    { title: "Risk", body: "No critical threat language was detected, but operational context should still be reviewed against policy." },
-    { title: "What provider saw", body: redactedPrompt },
-    { title: "Recommended action", body: "Confirm scope, assign an owner, document evidence, and convert the response into a tracked security task if needed." },
-    { title: "Audit note", body: "Wemik can show the exact guarded prompt for review before this flow connects to a real provider." },
+    { title: "What the model received", body: redactedPrompt },
+    { title: "Privacy", body: "Sensitive values were replaced with placeholders before this was sent, and restored only here on your device." },
   ];
 }
 
 function restoredResponseText(redactedPrompt, warning, findings) {
-  const restoredValues = findings.map((finding) => finding.value);
-  const restoredSuffix = restoredValues.length
-    ? ` Restored local values for your workspace: ${restoredValues.join(", ")}.`
-    : " No sensitive values needed restoration.";
-  return `${warning ? "Warning response prepared." : "Provider-safe response prepared."} The provider prompt was: ${redactedPrompt}.${restoredSuffix}`;
+  const restored = findings.map((finding) => finding.value);
+  return restored.length
+    ? `Done — I worked on the guarded version and restored your local values here: ${restored.join(", ")}.`
+    : "Done. No sensitive values were detected, so nothing needed to be guarded.";
 }
 
 function setMascot(nextState) {
@@ -725,6 +736,8 @@ input.addEventListener("keydown", (event) => {
 
 $("#newChatButton").addEventListener("click", () => {
   state.selectedId = null;
+  state.artifact = null;
+  closeArtifact();
   setMascot("idle");
   closeSidebar();
   render();
@@ -751,6 +764,19 @@ $("#motionToggle").addEventListener("change", (event) => {
 $("#modeSelect").addEventListener("change", (event) => {
   state.mode = event.target.value;
   render();
+});
+
+// Artifact panel controls
+$("#artifactClose").addEventListener("click", closeArtifact);
+$("#artifactDownload").addEventListener("click", () => {
+  const p = state.artifact;
+  if (p?.downloadXlsxBase64) downloadBase64(p.downloadXlsxBase64, p.downloadFileName || "wemik-reorganised.xlsx");
+});
+$("#artifactTabs").addEventListener("click", (event) => {
+  const btn = event.target.closest("[data-artifact-tab]");
+  if (!btn) return;
+  state.artifactTab = btn.dataset.artifactTab;
+  renderArtifact();
 });
 
 boot();
