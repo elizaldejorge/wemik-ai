@@ -267,8 +267,12 @@ app.post("/api/chat/provider", requireRole("admin"), (req, res) => {
 });
 
 // ─── SERVE PAGES ─────────────────────────────────────────────────────────────
-// The Wemik secure chat app is the front door.
+// Public marketing site.
 app.get("/", (_req, res) => {
+  res.sendFile(path.join(__dirname, "landing.html"));
+});
+// The Wemik secure chat app.
+app.get("/chat", (_req, res) => {
   res.sendFile(path.join(__dirname, "chat.html"));
 });
 // The "how it works" gateway explainer.

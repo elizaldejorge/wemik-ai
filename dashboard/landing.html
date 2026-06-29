@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wemik - Sovereign AI compliance for GCC banks | On-device, Arabic-first</title>
+  <meta name="description" content="Wemik redacts sensitive customer data on the device before it reaches any AI model - Arabic-native, built for QCB and PDPPL data-residency expectations." />
+  <meta property="og:title" content="Wemik - Sensitive data never leaves the machine" />
+  <meta property="og:description" content="On-device redaction, Arabic-first detection, and audit-ready AI compliance for GCC banks." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/wemik-logo.png" />
+  <link rel="icon" type="image/png" href="/wemik-logo.png" />
+  <link rel="stylesheet" href="/landing.css" />
+</head>
+<body>
+  <header class="site-nav">
+    <a class="nav-brand" href="#top" aria-label="Wemik home" data-i18n-aria="brandAria">
+      <span class="brand-box"><img src="/wemik-logo.png" alt="" /></span>
+      <span data-i18n="brandName">Wemik</span>
+    </a>
+    <nav class="nav-links" aria-label="Primary navigation">
+      <a href="#product" data-i18n="navProduct">Product</a>
+      <a href="#how" data-i18n="navHow">How it works</a>
+      <a href="#why" data-i18n="navWhy">Why Wemik</a>
+      <a href="#security" data-i18n="navSecurity">Security</a>
+    </nav>
+    <div class="nav-actions">
+      <button class="lang-toggle" type="button" id="langToggle" data-i18n="langToggle">العربية</button>
+      <a class="button button-small button-primary" href="#pilot" data-i18n="ctaPilot">Request a pilot</a>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero section-dark">
+      <div class="hero-bg" aria-hidden="true">
+        <div class="hero-boundary"></div>
+        <div class="hero-token token-one" data-i18n="tokenOne">QID -> [ID_1]</div>
+        <div class="hero-token token-two" data-i18n="tokenTwo">IBAN -> [BANK_1]</div>
+        <div class="hero-token token-three" data-i18n="tokenThree">Name -> [PERSON_1]</div>
+      </div>
+      <div class="hero-inner">
+        <p class="eyebrow" data-i18n="heroEyebrow">SOVEREIGN AI FOR GCC BANKING</p>
+        <h1 data-i18n="heroTitle">Sensitive data never leaves the machine.</h1>
+        <p class="hero-copy" data-i18n="heroSub">Wemik lets your team use AI without sending a single customer's QID, IBAN, or name to a foreign cloud. On-device redaction, Arabic-first, built for Qatar Central Bank's AI expectations.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#pilot" data-i18n="ctaPilot">Request a pilot</a>
+          <a class="button button-secondary" href="#investors" data-i18n="ctaInvestors">For investors</a>
+        </div>
+        <div class="trust-strip" aria-label="Trust principles">
+          <span data-i18n="trustOne">Designed for QCB and PDPPL data-residency expectations</span>
+          <span data-i18n="trustTwo">On-device by architecture</span>
+          <span data-i18n="trustThree">Arabic-native</span>
+        </div>
+      </div>
+      <div class="hero-preview" aria-label="Wemik redaction preview" data-i18n-aria="previewAria">
+        <div class="preview-top">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div class="preview-grid">
+          <div class="preview-panel">
+            <small data-i18n="previewRaw">Employee prompt</small>
+            <p data-i18n-html="previewRawText">Draft a reply to <mark>Ahmed Al-Thani</mark> about QID <mark>28412345678</mark> and IBAN <mark>QA54...</mark></p>
+          </div>
+          <div class="preview-flow">
+            <span></span>
+          </div>
+          <div class="preview-panel safe">
+            <small data-i18n="previewSafe">Prompt sent to model</small>
+            <p data-i18n-html="previewSafeText">Draft a reply to <mark>[PERSON_1]</mark> about QID <mark>[ID_1]</mark> and IBAN <mark>[BANK_1]</mark></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-light problem" id="product">
+      <div class="section-shell">
+        <div class="section-heading">
+          <p class="eyebrow" data-i18n="problemEyebrow">THE PROBLEM</p>
+          <h2 data-i18n="problemTitle">Your team already uses AI. Your data is already leaving.</h2>
+          <p data-i18n="problemLead">An employee pastes a customer's QID, IBAN, and balance into a public chatbot to draft a reply. That data may now sit on a server outside the country.</p>
+        </div>
+        <div class="card-grid three">
+          <article class="info-card">
+            <span class="card-icon icon-boundary"></span>
+            <h3 data-i18n="problemOneTitle">Cloud redaction is too late.</h3>
+            <p data-i18n="problemOneBody">By the time a cloud tool can sanitise data, it has already crossed the border.</p>
+          </article>
+          <article class="info-card">
+            <span class="card-icon icon-arabic"></span>
+            <h3 data-i18n="problemTwoTitle">Global tools are English-first.</h3>
+            <p data-i18n="problemTwoBody">They miss Qatari QID, Gulf IBAN and SWIFT formats, and Arabic names.</p>
+          </article>
+          <article class="info-card">
+            <span class="card-icon icon-audit"></span>
+            <h3 data-i18n="problemThreeTitle">"Trust us" is not residency.</h3>
+            <p data-i18n="problemThreeBody">A contractual promise on a foreign cloud does not satisfy a regulated audit.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-light solution">
+      <div class="section-shell split">
+        <div class="section-heading sticky-heading">
+          <p class="eyebrow" data-i18n="solutionEyebrow">THE SOLUTION</p>
+          <h2 data-i18n="solutionTitle">A control, not a chatbot.</h2>
+          <p data-i18n="solutionLead">Wemik sits before the model. It minimises sensitive data at the source, then gives risk and compliance a verifiable trail.</p>
+        </div>
+        <div class="pillar-list">
+          <article class="pillar">
+            <span class="card-icon icon-device"></span>
+            <div>
+              <h3 data-i18n="pillarOneTitle">On-device redaction</h3>
+              <p data-i18n="pillarOneBody">Raw sensitive data never crosses the trust boundary.</p>
+            </div>
+          </article>
+          <article class="pillar">
+            <span class="card-icon icon-language"></span>
+            <div>
+              <h3 data-i18n="pillarTwoTitle">Arabic and GCC-native</h3>
+              <p data-i18n="pillarTwoBody">Detects QID, Gulf IBAN, SWIFT, and Arabic names that global engines miss.</p>
+            </div>
+          </article>
+          <article class="pillar">
+            <span class="card-icon icon-human"></span>
+            <div>
+              <h3 data-i18n="pillarThreeTitle">Fail-closed with human review</h3>
+              <p data-i18n="pillarThreeBody">If Wemik is not sure, it asks. It does not silently miss.</p>
+            </div>
+          </article>
+          <article class="pillar">
+            <span class="card-icon icon-log"></span>
+            <div>
+              <h3 data-i18n="pillarFourTitle">Audit-ready by design</h3>
+              <p data-i18n="pillarFourBody">Every redaction decision can be logged for risk and compliance.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-dark workflow" id="how">
+      <div class="section-shell">
+        <div class="section-heading">
+          <p class="eyebrow" data-i18n="howEyebrow">HOW IT WORKS</p>
+          <h2 data-i18n="howTitle">Sensitive data stays on the device. The AI still does the work.</h2>
+        </div>
+        <ol class="steps">
+          <li>
+            <span>01</span>
+            <h3 data-i18n="stepOneTitle">On device.</h3>
+            <p data-i18n="stepOneBody">An employee types or pastes a message containing customer data.</p>
+          </li>
+          <li>
+            <span>02</span>
+            <h3 data-i18n="stepTwoTitle">Local redaction.</h3>
+            <p data-i18n="stepTwoBody">Wemik detects and tokenises it on-device: QID becomes [ID_1].</p>
+          </li>
+          <li>
+            <span>03</span>
+            <h3 data-i18n="stepThreeTitle">Only the redacted prompt is sent.</h3>
+            <p data-i18n="stepThreeBody">The model receives a sanitised prompt, never the raw values.</p>
+          </li>
+          <li>
+            <span>04</span>
+            <h3 data-i18n="stepFourTitle">Restored locally.</h3>
+            <p data-i18n="stepFourBody">The response comes back and real values are re-inserted on the device.</p>
+          </li>
+        </ol>
+        <p class="workflow-caption" data-i18n="howCaption">The model works on a sanitised prompt. Raw entities never leave. That is a control your auditors can verify, not a promise.</p>
+      </div>
+    </section>
+
+    <section class="section-light why-now">
+      <div class="section-shell split">
+        <div class="section-heading">
+          <p class="eyebrow" data-i18n="nowEyebrow">WHY NOW</p>
+          <h2 data-i18n="nowTitle">Banks have a mandate to use AI, and a mandate to control it.</h2>
+        </div>
+        <div class="rich-copy">
+          <p data-i18n="nowBody">GCC banks are moving AI from experiments into daily work. The compliance question has changed from "can we use AI?" to "can we prove customer data stays under control?" Wemik is built for that regime: Arabic, Gulf financial entities, on-device sovereignty, and audit packaging for regulated buyers.</p>
+          <div class="stat-row">
+            <div><strong data-i18n="statOneTitle">Arabic-first</strong><span data-i18n="statOne">where global tools are English-first</span></div>
+            <div><strong data-i18n="statTwoTitle">On-device</strong><span data-i18n="statTwo">not network-layer redaction</span></div>
+            <div><strong data-i18n="statThreeTitle">Fail-safe</strong><span data-i18n="statThree">human review when uncertain</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-light moat" id="why">
+      <div class="section-shell">
+        <div class="section-heading narrow">
+          <p class="eyebrow" data-i18n="whyEyebrow">WHY WEMIK</p>
+          <h2 data-i18n="whyTitle">The moat is not generic redaction. The moat is GCC banking governance.</h2>
+          <p data-i18n="whyBody">On-device PII detection is becoming a commodity. Wemik competes one layer up, where global players are weakest.</p>
+        </div>
+        <div class="moat-grid">
+          <span data-i18n="moatOne">Arabic and GCC entity accuracy</span>
+          <span data-i18n="moatTwo">QCB and PDPPL compliance packaging</span>
+          <span data-i18n="moatThree">In-country sovereign deployment</span>
+          <span data-i18n="moatFour">Built for risk and compliance offices</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-dark platform" id="investors">
+      <div class="section-shell">
+        <p class="eyebrow" data-i18n="platformEyebrow">WHERE THIS GOES</p>
+        <h2 data-i18n="platformTitle">From redaction to the AI-governance control plane.</h2>
+        <p data-i18n="platformBody">Redaction is the wedge. Next comes the AI-systems registry, high-risk-AI approval workflows, and board-level audit reporting. Governance is the platform.</p>
+      </div>
+    </section>
+
+    <section class="section-light security" id="security">
+      <div class="section-shell split">
+        <div class="section-heading">
+          <p class="eyebrow" data-i18n="securityEyebrow">SECURITY</p>
+          <h2 data-i18n="securityTitle">Designed for the people who say no.</h2>
+          <p data-i18n="securityLead">We do not claim perfect detection. We claim a control that fails safe and keeps a human in the loop.</p>
+        </div>
+        <ul class="security-list">
+          <li data-i18n="securityOne">Data minimised at source</li>
+          <li data-i18n="securityTwo">Fail-closed by default</li>
+          <li data-i18n="securityThree">Full audit log of every decision</li>
+          <li data-i18n="securityFour">Built around in-country residency</li>
+          <li data-i18n="securityFive">No raw sensitive data in transit</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section-light traction">
+      <div class="section-shell">
+        <div class="section-heading narrow">
+          <p class="eyebrow" data-i18n="tractionEyebrow">TRACTION</p>
+          <h2 data-i18n="tractionTitle">Built with the Gulf's banks, for the Gulf's banks.</h2>
+        </div>
+        <div class="proof-row">
+          <div data-i18n="proofOne">Design-partner pilots</div>
+          <div data-i18n="proofTwo">Qatar fintech ecosystem</div>
+          <div data-i18n="proofThree">Arabic/GCC detection benchmark in progress</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-dark cta-band" id="pilot">
+      <div class="cta-grid">
+        <div class="cta-copy">
+          <p class="eyebrow" data-i18n="pilotEyebrow">FOR BANKS</p>
+          <h2 data-i18n="pilotTitle">See it on your own data.</h2>
+          <p data-i18n="pilotBody">Run a scoped pilot with your compliance and innovation teams.</p>
+          <form class="pilot-form" id="pilotForm">
+            <label>
+              <span data-i18n="formName">Name</span>
+              <input name="name" autocomplete="name" required />
+            </label>
+            <label>
+              <span data-i18n="formEmail">Work email</span>
+              <input name="email" type="email" autocomplete="email" required />
+            </label>
+            <label>
+              <span data-i18n="formInstitution">Bank or institution</span>
+              <input name="institution" autocomplete="organization" required />
+            </label>
+            <label>
+              <span data-i18n="formMessage">Message</span>
+              <textarea name="message" rows="3"></textarea>
+            </label>
+            <button class="button button-primary" type="submit" data-i18n="ctaPilot">Request a pilot</button>
+            <p class="form-note" id="formNote" role="status"></p>
+          </form>
+        </div>
+        <div class="investor-card">
+          <p class="eyebrow" data-i18n="investorEyebrow">FOR INVESTORS</p>
+          <h3 data-i18n="investorTitle">Backing sovereign AI infrastructure.</h3>
+          <p data-i18n="investorBody">The compliance control plane for GCC banking.</p>
+          <a class="button button-secondary" href="mailto:hello@wemik.ai?subject=Wemik investor deck request" data-i18n="investorCta">Request the investor deck</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-brand">
+      <span class="brand-box"><img src="/wemik-logo.png" alt="" /></span>
+      <div>
+        <strong data-i18n="brandName">Wemik</strong>
+        <p data-i18n="footerLine">Sovereign AI compliance for GCC banking.</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <span data-i18n="footerLocation">Doha, Qatar</span>
+      <a href="mailto:hello@wemik.ai">hello@wemik.ai</a>
+      <button type="button" id="footerLang" data-i18n="langToggle">العربية</button>
+      <a href="#pilot" data-i18n="privacy">Privacy</a>
+      <a href="#pilot" data-i18n="terms">Terms</a>
+    </div>
+    <p class="copyright" id="copyright"></p>
+  </footer>
+
+  <script src="/landing.js"></script>
+</body>
+</html>
